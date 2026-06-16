@@ -1015,26 +1015,27 @@
           <button class="info-btn delete-btn" type="button">삭제</button>
         </div>
       `;
-      content.addEventListener("click", (e) => { e.stopPropagation(); });
-      content.addEventListener("mousedown", (e) => { e.stopPropagation(); infoClickGuard = Date.now(); });
-      content.addEventListener("touchstart", (e) => { infoClickGuard = Date.now(); });
-      content.querySelector(".edit-btn").addEventListener("click", (e) => {
-        e.stopPropagation();
+      content.addEventListener("mousedown", () => { infoClickGuard = Date.now(); });
+      content.addEventListener("touchstart", () => { infoClickGuard = Date.now(); });
+      content.querySelector(".edit-btn").addEventListener("mousedown", (e) => {
+        e.preventDefault();
         infoClickGuard = Date.now();
-        showEditForm(park, position);
+        setTimeout(() => showEditForm(park, position), 0);
       });
-      content.querySelector(".relocate-btn").addEventListener("click", (e) => {
-        e.stopPropagation();
+      content.querySelector(".relocate-btn").addEventListener("mousedown", (e) => {
+        e.preventDefault();
         infoClickGuard = Date.now();
-        fixingPark = { ...park, _relocate: true };
-        infoOverlay.setMap(null);
-        infoOverlay = null;
-        render();
+        setTimeout(() => {
+          fixingPark = { ...park, _relocate: true };
+          infoOverlay.setMap(null);
+          infoOverlay = null;
+          render();
+        }, 0);
       });
-      content.querySelector(".delete-btn").addEventListener("click", (e) => {
-        e.stopPropagation();
+      content.querySelector(".delete-btn").addEventListener("mousedown", (e) => {
+        e.preventDefault();
         infoClickGuard = Date.now();
-        deletePark(park);
+        setTimeout(() => deletePark(park), 0);
       });
       infoOverlay = new kakao.maps.CustomOverlay({
         map,
@@ -1065,30 +1066,33 @@
           <button class="info-btn cancel-edit-btn" type="button">취소</button>
         </div>
       `;
-      content.querySelector(".save-edit-btn").addEventListener("click", (e) => {
-        e.stopPropagation();
+      content.querySelector(".save-edit-btn").addEventListener("mousedown", (e) => {
+        e.preventDefault();
         infoClickGuard = Date.now();
-        const edits = {
-          name: content.querySelector(".edit-name").value.trim(),
-          category: content.querySelector(".edit-category").value,
-          dong: content.querySelector(".edit-dong").value.trim(),
-          address: content.querySelector(".edit-address").value.trim(),
-          facility: park.facility || ""
-        };
-        applyEdit(park, edits);
-        infoOverlay.setMap(null);
-        infoOverlay = null;
+        setTimeout(() => {
+          const edits = {
+            name: content.querySelector(".edit-name").value.trim(),
+            category: content.querySelector(".edit-category").value,
+            dong: content.querySelector(".edit-dong").value.trim(),
+            address: content.querySelector(".edit-address").value.trim(),
+            facility: park.facility || ""
+          };
+          applyEdit(park, edits);
+          infoOverlay.setMap(null);
+          infoOverlay = null;
+        }, 0);
       });
-      content.querySelector(".cancel-edit-btn").addEventListener("click", (e) => {
-        e.stopPropagation();
+      content.querySelector(".cancel-edit-btn").addEventListener("mousedown", (e) => {
+        e.preventDefault();
         infoClickGuard = Date.now();
-        infoOverlay.setMap(null);
-        infoOverlay = null;
-        showInfo(park, position);
+        setTimeout(() => {
+          infoOverlay.setMap(null);
+          infoOverlay = null;
+          showInfo(park, position);
+        }, 0);
       });
-      content.addEventListener("click", (e) => { e.stopPropagation(); });
-      content.addEventListener("mousedown", (e) => { e.stopPropagation(); infoClickGuard = Date.now(); });
-      content.addEventListener("touchstart", (e) => { infoClickGuard = Date.now(); });
+      content.addEventListener("mousedown", () => { infoClickGuard = Date.now(); });
+      content.addEventListener("touchstart", () => { infoClickGuard = Date.now(); });
       infoOverlay = new kakao.maps.CustomOverlay({
         map,
         position,
