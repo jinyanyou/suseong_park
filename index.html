@@ -46,22 +46,31 @@
       min-height: 0;
       overflow-y: auto;
       border-right: 1px solid var(--line);
-      background: var(--surface);
+      background: #f8faf9;
       z-index: 10;
     }
 
     header {
-      padding: 22px 20px 16px;
-      border-bottom: 1px solid var(--line);
+      padding: 24px 20px 18px;
+      background: linear-gradient(135deg, #145f45 0%, #20835f 100%);
+      color: #fff;
     }
 
     h1 {
-      margin: 0 0 8px;
-      font-size: 24px;
+      margin: 0 0 4px;
+      font-size: 22px;
       line-height: 1.25;
+      color: #fff;
+      letter-spacing: -0.3px;
     }
 
-    .meta,
+    .meta {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
     .source {
       margin: 0;
       color: var(--muted);
@@ -71,10 +80,10 @@
 
     .controls {
       display: grid;
-      gap: 12px;
+      gap: 10px;
       padding: 14px 16px;
       border-bottom: 1px solid var(--line);
-      background: #fbfdfb;
+      background: #fff;
     }
 
     .search,
@@ -83,7 +92,7 @@
     .manual-panel select,
     .manual-panel textarea {
       width: 100%;
-      border-radius: 8px;
+      border-radius: 10px;
       font-size: 14px;
       outline: none;
     }
@@ -92,10 +101,11 @@
     .manual-panel input,
     .manual-panel select,
     .manual-panel textarea {
-      border: 1px solid #cbd8d0;
-      padding: 0 12px;
+      border: 1px solid #dce4df;
+      padding: 0 14px;
       color: var(--ink);
-      background: #fff;
+      background: #f8faf9;
+      transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
     }
 
     .search,
@@ -117,29 +127,40 @@
     .manual-panel select:focus,
     .manual-panel textarea:focus {
       border-color: var(--green);
-      box-shadow: 0 0 0 3px rgba(32, 131, 95, 0.14);
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(32, 131, 95, 0.12);
     }
 
     .download {
-      border: 1px solid var(--green);
-      background: var(--green);
+      border: none;
+      background: linear-gradient(135deg, #20835f 0%, #176a4c 100%);
       color: #fff;
-      font-weight: 800;
+      font-weight: 700;
       cursor: pointer;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(32, 131, 95, 0.25);
+      transition: transform 0.1s, box-shadow 0.15s;
     }
 
     .download:hover,
     .download:focus {
-      background: #176a4c;
+      background: linear-gradient(135deg, #176a4c 0%, #145f45 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(32, 131, 95, 0.3);
+    }
+
+    .download:active {
+      transform: translateY(0);
     }
 
     .manual-panel {
       display: grid;
       gap: 10px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 12px;
+      border: 1px solid #e4ebe7;
+      border-radius: 12px;
+      padding: 14px;
       background: #fff;
+      box-shadow: 0 2px 8px rgba(31, 41, 51, 0.06);
     }
 
     .manual-panel[hidden] {
@@ -188,12 +209,19 @@
 
     .secondary {
       height: 38px;
-      border: 1px solid #cbd8d0;
-      border-radius: 8px;
+      border: 1px solid #dce4df;
+      border-radius: 10px;
       background: #fff;
       color: var(--ink);
-      font-weight: 800;
+      font-weight: 700;
+      font-size: 13px;
       cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .secondary:hover {
+      background: #f0f5f2;
+      border-color: #b8c5bc;
     }
 
     .manual-help {
@@ -206,10 +234,11 @@
     .github-panel {
       display: grid;
       gap: 10px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 12px;
+      border: 1px solid #e4ebe7;
+      border-radius: 12px;
+      padding: 14px;
       background: #fff;
+      box-shadow: 0 2px 8px rgba(31, 41, 51, 0.06);
     }
 
     .github-panel[hidden] {
@@ -219,18 +248,20 @@
     .github-panel input {
       width: 100%;
       height: 38px;
-      border: 1px solid #cbd8d0;
-      border-radius: 8px;
-      padding: 0 10px;
+      border: 1px solid #dce4df;
+      border-radius: 10px;
+      padding: 0 12px;
       color: var(--ink);
-      background: #fff;
+      background: #f8faf9;
       font-size: 13px;
       outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
     }
 
     .github-panel input:focus {
       border-color: var(--green);
-      box-shadow: 0 0 0 3px rgba(32, 131, 95, 0.14);
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(32, 131, 95, 0.12);
     }
 
     .github-actions {
@@ -265,17 +296,25 @@
 
     .stat {
       min-width: 0;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 9px 7px;
+      border: 1px solid #e4ebe7;
+      border-radius: 12px;
+      padding: 12px 10px;
       background: #fff;
+      text-align: center;
+      box-shadow: 0 1px 4px rgba(31, 41, 51, 0.04);
+      transition: transform 0.1s, box-shadow 0.15s;
+    }
+
+    .stat:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 3px 10px rgba(31, 41, 51, 0.08);
     }
 
     .stat b {
       display: block;
-      font-size: 19px;
+      font-size: 22px;
       line-height: 1;
-      color: #006d77;
+      color: #145f45;
     }
 
     .stat span {
@@ -284,6 +323,7 @@
       color: var(--muted);
       font-size: 11px;
       white-space: nowrap;
+      letter-spacing: -0.2px;
     }
 
     .filters {
@@ -297,21 +337,30 @@
 
     .chip {
       appearance: none;
-      border: 1px solid #cbd8d0;
+      border: 1px solid #dce4df;
       border-radius: 999px;
       background: #fff;
-      color: var(--ink);
-      padding: 8px 11px;
-      font-size: 13px;
+      color: var(--muted);
+      padding: 7px 13px;
+      font-size: 12px;
+      font-weight: 500;
       line-height: 1;
       cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .chip:hover {
+      border-color: #b8c5bc;
+      color: var(--ink);
+      background: #f0f5f2;
     }
 
     .chip.active {
       border-color: var(--green);
-      background: var(--soft);
-      color: #145f45;
-      font-weight: 800;
+      background: var(--green);
+      color: #fff;
+      font-weight: 700;
+      box-shadow: 0 2px 6px rgba(32, 131, 95, 0.2);
     }
 
     .table-wrap {
@@ -352,19 +401,25 @@
 
     .park-row:hover,
     .park-row:focus {
-      background: #f5faf6;
+      background: #eef7f0;
       outline: none;
+    }
+
+    .park-row {
+      transition: background 0.1s;
     }
 
     .num {
       display: inline-grid;
       place-items: center;
       min-width: 28px;
-      height: 24px;
-      border-radius: 999px;
-      background: #edf7f1;
+      height: 26px;
+      padding: 0 6px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #eef7f0, #dff0e4);
       color: #145f45;
       font-weight: 800;
+      font-size: 12px;
     }
 
     .tag {
@@ -446,13 +501,16 @@
     }
 
     .source {
-      padding: 12px 16px 16px;
+      padding: 14px 16px 16px;
       border-top: 1px solid var(--line);
-      background: #fbfdfb;
+      background: #f4f7f5;
+      font-size: 12px;
+      color: var(--muted);
     }
 
     .source strong {
       color: var(--ink);
+      font-size: 12px;
     }
 
     .map-wrap {
@@ -557,7 +615,7 @@
   <aside>
     <header>
       <h1>대구 수성구 공원 지도</h1>
-      <p class="meta">엑셀 공원현황 92개를 기준으로 동별 번호를 매기고, 카카오맵 주소검색으로 위치를 표시합니다.</p>
+      <p class="meta">카카오맵 주소검색 기반</p>
     </header>
 
     <section class="controls" aria-label="지도 필터">
