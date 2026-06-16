@@ -556,7 +556,76 @@
     }
 
     .info-actions {
-      margin-top: 8px;
+      display: flex;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .info-btn {
+      flex: 1;
+      padding: 6px 0;
+      border: 1px solid #dce4df;
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+
+    .info-btn:hover {
+      background: #f0f5f2;
+    }
+
+    .info-btn.delete-btn {
+      color: var(--red);
+      border-color: #f5c6b8;
+    }
+
+    .info-btn.delete-btn:hover {
+      background: #fef2f0;
+    }
+
+    .info-btn.save-edit-btn {
+      background: var(--green);
+      color: #fff;
+      border-color: var(--green);
+    }
+
+    .info-btn.save-edit-btn:hover {
+      background: #176a4c;
+    }
+
+    .info-edit {
+      width: 260px;
+    }
+
+    .info-edit label {
+      display: grid;
+      gap: 3px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .info-edit input,
+    .info-edit select {
+      width: 100%;
+      height: 30px;
+      border: 1px solid #dce4df;
+      border-radius: 6px;
+      padding: 0 8px;
+      font-size: 12px;
+      color: var(--ink);
+      outline: none;
+    }
+
+    .info-edit input:focus,
+    .info-edit select:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 2px rgba(32, 131, 95, 0.12);
     }
 
     .temp-pin {
@@ -717,12 +786,14 @@
 
     const CUSTOM_PARKS_KEY = "suseong-custom-parks";
     const COORD_FIXES_KEY = "suseong-coord-fixes";
+    const OVERRIDES_KEY = "suseong-park-overrides";
     const GITHUB_SETTINGS_KEY = "suseong-github-settings";
     const XLSX_FILE = "./공원현황(홈페이지 발췌).xlsx";
     const coords = new Map();
     const failures = new Set();
     const overlays = [];
     let customParks = [];
+    const parkOverrides = { deleted: new Set(), edits: {} };
     let map;
     let geocoder;
     let places;
@@ -761,7 +832,12 @@
     const countFailed = document.querySelector("#countFailed");
 
     function allParks() {
-      return [...PARKS, ...customParks];
+      return [...PARKS, ...customParks]
+        .filter((park) => !parkOverrides.deleted.has(park.seq))
+        .map((park) => {
+          const edits = parkOverrides.edits[park.seq];
+          return edits ? { ...park, ...edits } : park;
+        });
     }
 
     function extractDong(address) {
@@ -924,18 +1000,113 @@
         <div>${escapeHtml(park.address || park.fullAddress)}</div>
         <div>${park.source === "manual" ? "직접 추가" : `원장 연번 ${escapeHtml(park.seq)}`}</div>
         ${park.facility ? `<div>${escapeHtml(park.facility)}</div>` : ""}
-        ${park.source === "manual" ? '<div class="info-actions"><button class="delete-custom" type="button">삭제</button></div>' : ""}
+        <div class="info-actions">
+          <button class="info-btn edit-btn" type="button">수정</button>
+          <button class="info-btn relocate-btn" type="button">위치수정</button>
+          <button class="info-btn delete-btn" type="button">삭제</button>
+        </div>
       `;
-      const deleteButton = content.querySelector(".delete-custom");
-      if (deleteButton) {
-        deleteButton.addEventListener("click", () => deleteCustomPark(park.seq));
-      }
+      content.querySelector(".edit-btn").addEventListener("click", () => {
+        showEditForm(park, position);
+      });
+      content.querySelector(".relocate-btn").addEventListener("click", () => {
+        fixingPark = { ...park, _relocate: true };
+        infoOverlay.setMap(null);
+        infoOverlay = null;
+        render();
+      });
+      content.querySelector(".delete-btn").addEventListener("click", () => {
+        if (!confirm(`"${park.name}" 을(를) 삭제하시겠습니까?`)) return;
+        deletePark(park);
+      });
       infoOverlay = new kakao.maps.CustomOverlay({
         map,
         position,
         content,
         yAnchor: 1.25
       });
+    }
+
+    function showEditForm(park, position) {
+      if (infoOverlay) infoOverlay.setMap(null);
+      const content = document.createElement("div");
+      content.className = "info info-edit";
+      content.innerHTML = `
+        <label>공원명<input class="edit-name" value="${escapeHtml(park.name)}"></label>
+        <label>분류<select class="edit-category">
+          <option value="어린이공원"${park.category === "어린이공원" ? " selected" : ""}>어린이공원</option>
+          <option value="근린공원"${park.category === "근린공원" ? " selected" : ""}>근린공원</option>
+          <option value="소공원"${park.category === "소공원" ? " selected" : ""}>소공원</option>
+          <option value="기타공원"${park.category === "기타공원" ? " selected" : ""}>기타공원</option>
+          <option value="도시자연공원"${park.category === "도시자연공원" ? " selected" : ""}>도시자연공원</option>
+          <option value="대구체육공원"${park.category === "대구체육공원" ? " selected" : ""}>대구체육공원</option>
+        </select></label>
+        <label>동<input class="edit-dong" value="${escapeHtml(park.dong)}"></label>
+        <label>주소<input class="edit-address" value="${escapeHtml(park.address)}"></label>
+        <label>비고/시설<input class="edit-facility" value="${escapeHtml(park.facility)}"></label>
+        <div class="info-actions">
+          <button class="info-btn save-edit-btn" type="button">저장</button>
+          <button class="info-btn cancel-edit-btn" type="button">취소</button>
+        </div>
+      `;
+      content.querySelector(".save-edit-btn").addEventListener("click", () => {
+        const edits = {
+          name: content.querySelector(".edit-name").value.trim(),
+          category: content.querySelector(".edit-category").value,
+          dong: content.querySelector(".edit-dong").value.trim(),
+          address: content.querySelector(".edit-address").value.trim(),
+          facility: content.querySelector(".edit-facility").value.trim()
+        };
+        applyEdit(park, edits);
+        infoOverlay.setMap(null);
+        infoOverlay = null;
+      });
+      content.querySelector(".cancel-edit-btn").addEventListener("click", () => {
+        infoOverlay.setMap(null);
+        infoOverlay = null;
+        showInfo(park, position);
+      });
+      content.addEventListener("click", (e) => e.stopPropagation());
+      infoOverlay = new kakao.maps.CustomOverlay({
+        map,
+        position,
+        content,
+        yAnchor: 1.25
+      });
+    }
+
+    function applyEdit(park, edits) {
+      if (park.source === "manual") {
+        const target = customParks.find((p) => p.seq === park.seq);
+        if (target) Object.assign(target, edits);
+        saveCustomParks();
+      } else {
+        parkOverrides.edits[park.seq] = { ...parkOverrides.edits[park.seq], ...edits };
+        saveOverrides();
+      }
+      render();
+      autoSaveGithub().catch((error) => setSyncStatus(error.message, "error"));
+    }
+
+    async function deletePark(park) {
+      if (park.source === "manual") {
+        customParks = customParks.filter((p) => p.seq !== park.seq);
+        coords.delete(park.seq);
+        saveCustomParks();
+      } else {
+        parkOverrides.deleted.add(park.seq);
+        saveOverrides();
+      }
+      if (infoOverlay) {
+        infoOverlay.setMap(null);
+        infoOverlay = null;
+      }
+      render();
+      try {
+        await autoSaveGithub();
+      } catch (error) {
+        setSyncStatus(error.message, "error");
+      }
     }
 
     function focusPark(park) {
@@ -1009,9 +1180,14 @@
         row.tabIndex = 0;
         const isFailed = failures.has(park.seq) && !park.coord && park.source !== "manual";
         const isFixing = fixingPark && fixingPark.seq === park.seq;
-        const status = park.source === "manual"
-          ? '<span class="custom-mark">직접추가</span> <button class="delete-custom" type="button">삭제</button>'
-          : park.coord ? "표시" : isFailed ? (isFixing ? '<span class="fix-hint">지도를 클릭하세요</span>' : '<span class="fix-hint">클릭하여 위치 지정</span>') : "검색중";
+        let status;
+        if (isFailed) {
+          status = isFixing ? '<span class="fix-hint">지도를 클릭하세요</span>' : '<span class="fix-hint">클릭하여 위치 지정</span>';
+        } else if (park.coord) {
+          status = park.source === "manual" ? '<span class="custom-mark">직접추가</span>' : "표시";
+        } else {
+          status = "검색중";
+        }
         if (isFixing) row.classList.add("fixing");
         row.innerHTML = `
           <td>${escapeHtml(park.dong)}</td>
@@ -1020,13 +1196,6 @@
           <td>${escapeHtml(park.name)}</td>
           <td>${status}</td>
         `;
-        const deleteButton = row.querySelector(".delete-custom");
-        if (deleteButton) {
-          deleteButton.addEventListener("click", (event) => {
-            event.stopPropagation();
-            deleteCustomPark(park.seq);
-          });
-        }
         if (isFailed) {
           row.addEventListener("click", () => {
             fixingPark = park;
@@ -1142,6 +1311,25 @@
 
     function saveCustomParks() {
       localStorage.setItem(CUSTOM_PARKS_KEY, JSON.stringify(customParks));
+    }
+
+    function saveOverrides() {
+      localStorage.setItem(OVERRIDES_KEY, JSON.stringify({
+        deleted: [...parkOverrides.deleted],
+        edits: parkOverrides.edits
+      }));
+    }
+
+    function restoreOverrides() {
+      const saved = localStorage.getItem(OVERRIDES_KEY);
+      if (!saved) return;
+      try {
+        const data = JSON.parse(saved);
+        (data.deleted || []).forEach((seq) => parkOverrides.deleted.add(seq));
+        Object.assign(parkOverrides.edits, data.edits || {});
+      } catch (_) {
+        localStorage.removeItem(OVERRIDES_KEY);
+      }
     }
 
     function setSyncStatus(message, type = "") {
@@ -1278,9 +1466,31 @@
       });
       saveCoordFixes();
 
+      const overridesSettings = { ...settings, path: "park-overrides.json" };
+      const overridesRemote = await fetchJsonFile(overridesSettings);
+      if (overridesRemote.data) {
+        parkOverrides.deleted = new Set(overridesRemote.data.deleted || []);
+        parkOverrides.edits = overridesRemote.data.edits || {};
+        saveOverrides();
+      }
+
       render();
       const fixCount = Object.keys(fixesRemote.fixes).length;
-      setSyncStatus(`GitHub에서 ${customParks.length}개 공원 + ${fixCount}개 좌표 수정을 불러왔습니다.`, "ok");
+      setSyncStatus(`GitHub에서 동기화 완료.`, "ok");
+    }
+
+    async function fetchJsonFile(settings) {
+      const response = await fetch(githubFileUrl(settings), {
+        headers: {
+          Authorization: `Bearer ${settings.token}`,
+          Accept: "application/vnd.github+json"
+        }
+      });
+      if (response.status === 404) return { sha: null, data: null };
+      if (!response.ok) throw new Error(`GitHub 파일 조회 실패 (${response.status})`);
+      const file = await response.json();
+      const data = file.content ? JSON.parse(decodeBase64Utf8(file.content)) : null;
+      return { sha: file.sha, data };
     }
 
     async function fetchCoordFixesFile(settings) {
@@ -1354,8 +1564,34 @@
         throw new Error(`GitHub 좌표 저장 실패 (${fixesResponse.status})`);
       }
 
-      const fixCount = Object.keys(coordFixes).length;
-      setSyncStatus(`GitHub에 ${customParks.length}개 공원 + ${fixCount}개 좌표 수정을 저장했습니다.`, "ok");
+      const overridesSettings = { ...settings, path: "park-overrides.json" };
+      const overridesRemote = await fetchJsonFile(overridesSettings);
+      const overridesContent = JSON.stringify({
+        deleted: [...parkOverrides.deleted],
+        edits: parkOverrides.edits
+      }, null, 2);
+      const overridesBody = {
+        message: `Update park overrides (${new Date().toISOString()})`,
+        content: encodeBase64Utf8(overridesContent),
+        branch: settings.branch
+      };
+      if (overridesRemote.sha) {
+        overridesBody.sha = overridesRemote.sha;
+      }
+      const overridesResponse = await fetch(githubFileUrl(overridesSettings).replace(`?ref=${encodeURIComponent(settings.branch)}`, ""), {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${settings.token}`,
+          Accept: "application/vnd.github+json",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(overridesBody)
+      });
+      if (!overridesResponse.ok) {
+        throw new Error(`GitHub 수정사항 저장 실패 (${overridesResponse.status})`);
+      }
+
+      setSyncStatus(`GitHub에 저장 완료.`, "ok");
     }
 
     function hasGithubSyncSettings() {
@@ -1422,6 +1658,15 @@
           saveCoordFixes();
           render();
         }
+      } catch (_) {}
+      try {
+        const response = await fetch("./park-overrides.json?" + Date.now());
+        if (!response.ok) return;
+        const data = await response.json();
+        if (data.deleted) data.deleted.forEach((seq) => parkOverrides.deleted.add(seq));
+        if (data.edits) Object.assign(parkOverrides.edits, data.edits);
+        saveOverrides();
+        render();
       } catch (_) {}
     }
 
@@ -1665,21 +1910,6 @@
       }
     }
 
-    async function deleteCustomPark(seq) {
-      customParks = customParks.filter((park) => park.seq !== seq);
-      coords.delete(seq);
-      saveCustomParks();
-      if (infoOverlay) {
-        infoOverlay.setMap(null);
-        infoOverlay = null;
-      }
-      render();
-      try {
-        await autoSaveGithub();
-      } catch (error) {
-        setSyncStatus(error.message, "error");
-      }
-    }
 
     function geocodeAddress(park) {
       return new Promise((resolve) => {
@@ -1756,6 +1986,7 @@
       PARKS = await loadParksFromXlsx();
       restoreCoords();
       restoreCoordFixes();
+      restoreOverrides();
       restoreCustomParks();
       restoreGithubSettings();
       render();
