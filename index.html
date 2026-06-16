@@ -750,9 +750,6 @@
         <label>주소
           <input id="manualAddress" type="text" placeholder="예: 범어동 000-0">
         </label>
-        <label>비고/시설
-          <textarea id="manualFacility" placeholder="시설, 참고사항 등"></textarea>
-        </label>
         <div class="manual-actions">
           <button id="saveManual" class="download" type="button">마커 저장</button>
           <button id="clearManual" class="secondary" type="button">입력 지우기</button>
@@ -1010,7 +1007,6 @@
         <div>${escapeHtml(park.category)}</div>
         <div>${escapeHtml(park.address || park.fullAddress)}</div>
         <div>${park.source === "manual" ? "직접 추가" : `원장 연번 ${escapeHtml(park.seq)}`}</div>
-        ${park.facility ? `<div>${escapeHtml(park.facility)}</div>` : ""}
         <div class="info-actions">
           <button class="info-btn edit-btn" type="button">수정</button>
           <button class="info-btn relocate-btn" type="button">위치수정</button>
@@ -1054,7 +1050,6 @@
         </select></label>
         <label>동<input class="edit-dong" value="${escapeHtml(park.dong)}"></label>
         <label>주소<input class="edit-address" value="${escapeHtml(park.address)}"></label>
-        <label>비고/시설<input class="edit-facility" value="${escapeHtml(park.facility)}"></label>
         <div class="info-actions">
           <button class="info-btn save-edit-btn" type="button">저장</button>
           <button class="info-btn cancel-edit-btn" type="button">취소</button>
@@ -1066,7 +1061,7 @@
           category: content.querySelector(".edit-category").value,
           dong: content.querySelector(".edit-dong").value.trim(),
           address: content.querySelector(".edit-address").value.trim(),
-          facility: content.querySelector(".edit-facility").value.trim()
+          facility: park.facility || ""
         };
         applyEdit(park, edits);
         infoOverlay.setMap(null);
@@ -1251,14 +1246,13 @@
 
     function downloadCurrentCsv() {
       const data = numberByDong(filteredParks());
-      const header = ["동", "번호", "분류", "공원명", "주소", "비고/시설", "원장연번", "자료구분", "위도", "경도", "좌표상태"];
+      const header = ["동", "번호", "분류", "공원명", "주소", "원장연번", "자료구분", "위도", "경도", "좌표상태"];
       const rows = data.map((park) => [
         park.dong,
         park.number,
         park.category,
         park.name,
         park.address,
-        park.facility,
         park.seq,
         park.source === "manual" ? "직접추가" : "원본",
         park.coord?.lat ?? "",
