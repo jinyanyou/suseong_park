@@ -1034,7 +1034,6 @@
       content.querySelector(".delete-btn").addEventListener("click", (e) => {
         e.stopPropagation();
         infoClickGuard = Date.now();
-        if (!confirm(`"${park.name}" 을(를) 삭제하시겠습니까?`)) return;
         deletePark(park);
       });
       infoOverlay = new kakao.maps.CustomOverlay({
