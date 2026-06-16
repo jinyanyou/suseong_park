@@ -1778,6 +1778,10 @@
       geocoder = new kakao.maps.services.Geocoder();
       places = new kakao.maps.services.Places();
       kakao.maps.event.addListener(map, "click", (mouseEvent) => {
+        if (infoOverlay) {
+          infoOverlay.setMap(null);
+          infoOverlay = null;
+        }
         if (fixingPark) {
           const lat = mouseEvent.latLng.getLat();
           const lng = mouseEvent.latLng.getLng();
