@@ -395,6 +395,34 @@
       background: var(--slate);
     }
 
+    .stat-clickable {
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .stat-clickable:hover {
+      border-color: var(--red);
+      background: #fef2f0;
+    }
+
+    .stat-clickable.active {
+      border-color: var(--red);
+      background: #fef2f0;
+    }
+
+    .park-row.fixing {
+      background: #fff7ed;
+      outline: 2px solid var(--red);
+      outline-offset: -2px;
+    }
+
+    .fix-hint {
+      color: var(--red);
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
     .failed {
       color: var(--red);
       font-size: 12px;
@@ -538,7 +566,7 @@
         <div class="stat"><b id="countParks">0</b><span>표시 공원</span></div>
         <div class="stat"><b id="countDongs">0</b><span>표시 동</span></div>
         <div class="stat"><b id="countMapped">0</b><span>좌표 표시</span></div>
-        <div class="stat"><b id="countFailed">0</b><span>좌표 미확인</span></div>
+        <div class="stat stat-clickable" id="statFailed"><b id="countFailed">0</b><span>좌표 미확인</span></div>
       </div>
       <button id="downloadCsv" class="download" type="button">현재 목록 CSV 저장</button>
       <button id="toggleOnline" class="secondary add-manual" type="button" aria-expanded="false" aria-controls="githubPanel">온라인 저장</button>
@@ -611,7 +639,8 @@
   <script>
     const state = {
       dong: "전체",
-      query: ""
+      query: "",
+      failedOnly: false
     };
 
     const CUSTOM_PARKS_KEY = "suseong-custom-parks";
@@ -625,6 +654,7 @@
     let places;
     let infoOverlay;
     let tempOverlay;
+    let fixingPark = null;
 
     const list = document.querySelector("#list");
     const filters = document.querySelector("#filters");
@@ -697,7 +727,8 @@
       return allParks().filter((park) => {
         const inDong = state.dong === "전체" || park.dong === state.dong;
         const inQuery = !query || `${park.name} ${park.dong} ${park.category} ${park.address} ${park.facility}`.toLowerCase().includes(query);
-        return inDong && inQuery;
+        const inFailed = !state.failedOnly || (failures.has(park.seq) && !coords.has(park.seq));
+        return inDong && inQuery && inFailed;
       });
     }
 
@@ -814,9 +845,12 @@
         const row = document.createElement("tr");
         row.className = "park-row";
         row.tabIndex = 0;
+        const isFailed = failures.has(park.seq) && !park.coord && park.source !== "manual";
+        const isFixing = fixingPark && fixingPark.seq === park.seq;
         const status = park.source === "manual"
           ? '<span class="custom-mark">직접추가</span> <button class="delete-custom" type="button">삭제</button>'
-          : park.coord ? "표시" : failures.has(park.seq) ? '<span class="failed">미확인</span>' : "검색중";
+          : park.coord ? "표시" : isFailed ? (isFixing ? '<span class="fix-hint">지도를 클릭하세요</span>' : '<span class="fix-hint">클릭하여 위치 지정</span>') : "검색중";
+        if (isFixing) row.classList.add("fixing");
         row.innerHTML = `
           <td>${escapeHtml(park.dong)}</td>
           <td><span class="num">${park.number}</span></td>
@@ -831,7 +865,14 @@
             deleteCustomPark(park.seq);
           });
         }
-        row.addEventListener("click", () => focusPark(park));
+        if (isFailed) {
+          row.addEventListener("click", () => {
+            fixingPark = park;
+            render();
+          });
+        } else {
+          row.addEventListener("click", () => focusPark(park));
+        }
         row.addEventListener("keydown", (event) => {
           if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
@@ -847,7 +888,10 @@
       countParks.textContent = data.length;
       countDongs.textContent = new Set(data.map((park) => park.dong)).size;
       countMapped.textContent = data.filter((park) => park.coord).length;
-      countFailed.textContent = data.filter((park) => failures.has(park.seq)).length;
+      const failedCount = allParks().filter((park) => failures.has(park.seq) && !coords.has(park.seq)).length;
+      countFailed.textContent = failedCount;
+      const statFailed = document.querySelector("#statFailed");
+      statFailed.classList.toggle("active", state.failedOnly);
     }
 
     function render() {
@@ -1277,6 +1321,12 @@
       render();
     });
 
+    document.querySelector("#statFailed").addEventListener("click", () => {
+      state.failedOnly = !state.failedOnly;
+      if (!state.failedOnly) fixingPark = null;
+      render();
+    });
+
     downloadCsv.addEventListener("click", downloadCurrentCsv);
     githubToken.addEventListener("change", () => {
       saveGithubSettings();
@@ -1307,6 +1357,15 @@
       geocoder = new kakao.maps.services.Geocoder();
       places = new kakao.maps.services.Places();
       kakao.maps.event.addListener(map, "click", (mouseEvent) => {
+        if (fixingPark) {
+          const lat = mouseEvent.latLng.getLat();
+          const lng = mouseEvent.latLng.getLng();
+          saveCoord(fixingPark, lat, lng);
+          failures.delete(fixingPark.seq);
+          fixingPark = null;
+          render();
+          return;
+        }
         if (!manualMode.checked) return;
         setManualPosition(mouseEvent.latLng);
       });
