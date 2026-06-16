@@ -1,0 +1,1318 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>대구 수성구 공원 지도</title>
+  <style>
+    :root {
+      --ink: #1f2933;
+      --muted: #667085;
+      --line: #d9e2dc;
+      --surface: #ffffff;
+      --soft: #eef7f0;
+      --green: #20835f;
+      --blue: #2563eb;
+      --amber: #b7791f;
+      --slate: #56606d;
+      --red: #c2410c;
+      --shadow: 0 12px 30px rgba(31, 41, 51, 0.14);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+      color: var(--ink);
+      background: #f7faf8;
+    }
+
+    body {
+      display: grid;
+      grid-template-columns: minmax(360px, 470px) 1fr;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    aside {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      min-height: 0;
+      overflow-y: auto;
+      border-right: 1px solid var(--line);
+      background: var(--surface);
+      z-index: 10;
+    }
+
+    header {
+      padding: 22px 20px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 24px;
+      line-height: 1.25;
+    }
+
+    .meta,
+    .source {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .controls {
+      display: grid;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfdfb;
+    }
+
+    .search,
+    .download,
+    .manual-panel input,
+    .manual-panel select,
+    .manual-panel textarea {
+      width: 100%;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .search,
+    .manual-panel input,
+    .manual-panel select,
+    .manual-panel textarea {
+      border: 1px solid #cbd8d0;
+      padding: 0 12px;
+      color: var(--ink);
+      background: #fff;
+    }
+
+    .search,
+    .download,
+    .manual-panel input,
+    .manual-panel select {
+      height: 42px;
+    }
+
+    .manual-panel textarea {
+      min-height: 64px;
+      padding-top: 10px;
+      resize: vertical;
+      font-family: inherit;
+    }
+
+    .search:focus,
+    .manual-panel input:focus,
+    .manual-panel select:focus,
+    .manual-panel textarea:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(32, 131, 95, 0.14);
+    }
+
+    .download {
+      border: 1px solid var(--green);
+      background: var(--green);
+      color: #fff;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .download:hover,
+    .download:focus {
+      background: #176a4c;
+    }
+
+    .manual-panel {
+      display: grid;
+      gap: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fff;
+    }
+
+    .manual-panel[hidden] {
+      display: none;
+    }
+
+    .add-manual {
+      width: 100%;
+    }
+
+    .manual-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .manual-toggle input {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--green);
+    }
+
+    .manual-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .manual-panel label:not(.manual-toggle),
+    .github-panel label {
+      display: grid;
+      gap: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .manual-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .secondary {
+      height: 38px;
+      border: 1px solid #cbd8d0;
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .manual-help {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .github-panel {
+      display: grid;
+      gap: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fff;
+    }
+
+    .github-panel[hidden] {
+      display: none;
+    }
+
+    .github-panel input {
+      width: 100%;
+      height: 38px;
+      border: 1px solid #cbd8d0;
+      border-radius: 8px;
+      padding: 0 10px;
+      color: var(--ink);
+      background: #fff;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .github-panel input:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(32, 131, 95, 0.14);
+    }
+
+    .github-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .sync-status {
+      min-height: 18px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .sync-status.error {
+      color: var(--red);
+      font-weight: 800;
+    }
+
+    .sync-status.ok {
+      color: var(--green);
+      font-weight: 800;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .stat {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px 7px;
+      background: #fff;
+    }
+
+    .stat b {
+      display: block;
+      font-size: 19px;
+      line-height: 1;
+      color: #006d77;
+    }
+
+    .stat span {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      max-height: 140px;
+      overflow: auto;
+      padding-right: 2px;
+    }
+
+    .chip {
+      appearance: none;
+      border: 1px solid #cbd8d0;
+      border-radius: 999px;
+      background: #fff;
+      color: var(--ink);
+      padding: 8px 11px;
+      font-size: 13px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .chip.active {
+      border-color: var(--green);
+      background: var(--soft);
+      color: #145f45;
+      font-weight: 800;
+    }
+
+    .table-wrap {
+      flex: 0 0 auto;
+      overflow: visible;
+      padding: 10px 12px;
+    }
+
+    .park-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .park-table th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      padding: 9px 7px;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    .park-table td {
+      padding: 10px 7px;
+      border-bottom: 1px solid #edf2ee;
+      line-height: 1.35;
+      vertical-align: top;
+    }
+
+    .park-row {
+      cursor: pointer;
+    }
+
+    .park-row:hover,
+    .park-row:focus {
+      background: #f5faf6;
+      outline: none;
+    }
+
+    .num {
+      display: inline-grid;
+      place-items: center;
+      min-width: 28px;
+      height: 24px;
+      border-radius: 999px;
+      background: #edf7f1;
+      color: #145f45;
+      font-weight: 800;
+    }
+
+    .tag {
+      display: inline-block;
+      min-width: 56px;
+      border-radius: 999px;
+      padding: 4px 7px;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 800;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .child {
+      background: var(--blue);
+    }
+
+    .neighborhood {
+      background: var(--green);
+    }
+
+    .small {
+      background: var(--amber);
+    }
+
+    .general {
+      background: var(--slate);
+    }
+
+    .failed {
+      color: var(--red);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .custom-mark {
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .delete-custom {
+      border: 0;
+      background: transparent;
+      color: var(--red);
+      font: inherit;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .source {
+      padding: 12px 16px 16px;
+      border-top: 1px solid var(--line);
+      background: #fbfdfb;
+    }
+
+    .source strong {
+      color: var(--ink);
+    }
+
+    .map-wrap {
+      position: relative;
+      min-width: 0;
+      height: 100vh;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+
+    .pin {
+      display: grid;
+      place-items: center;
+      width: 32px;
+      height: 32px;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(31, 41, 51, 0.28);
+      font-size: 14px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .info {
+      width: 230px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: var(--shadow);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .info strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 15px;
+    }
+
+    .info-actions {
+      margin-top: 8px;
+    }
+
+    .temp-pin {
+      display: grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      background: var(--red);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(31, 41, 51, 0.28);
+      font-size: 16px;
+      font-weight: 900;
+    }
+
+    @media (max-width: 860px) {
+      body {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto minmax(520px, 1fr);
+        height: auto;
+        min-height: 100vh;
+        overflow: auto;
+      }
+
+      aside {
+        min-height: 0;
+        max-height: 58vh;
+        height: auto;
+        overflow-y: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      header {
+        padding: 18px 16px 12px;
+      }
+
+      h1 {
+        font-size: 21px;
+      }
+
+      .summary {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .map-wrap,
+      #map {
+        height: auto;
+        min-height: 520px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <aside>
+    <header>
+      <h1>대구 수성구 공원 지도</h1>
+      <p class="meta">엑셀 공원현황 92개를 기준으로 동별 번호를 매기고, 카카오맵 주소검색으로 위치를 표시합니다.</p>
+    </header>
+
+    <section class="controls" aria-label="지도 필터">
+      <input id="search" class="search" type="search" placeholder="공원명, 동, 구분 검색" autocomplete="off">
+      <div class="summary">
+        <div class="stat"><b id="countParks">0</b><span>표시 공원</span></div>
+        <div class="stat"><b id="countDongs">0</b><span>표시 동</span></div>
+        <div class="stat"><b id="countMapped">0</b><span>좌표 표시</span></div>
+        <div class="stat"><b id="countFailed">0</b><span>좌표 미확인</span></div>
+      </div>
+      <button id="downloadCsv" class="download" type="button">현재 목록 CSV 저장</button>
+      <button id="toggleOnline" class="secondary add-manual" type="button" aria-expanded="false" aria-controls="githubPanel">온라인 저장</button>
+      <section id="githubPanel" class="github-panel" aria-label="GitHub 저장 설정" hidden>
+        <label>GitHub 토큰
+          <input id="githubToken" type="password" placeholder="fine-grained token">
+        </label>
+        <p id="syncStatus" class="sync-status">토큰을 입력하면 저장소를 자동으로 찾아 저장/삭제 때 GitHub에 반영합니다.</p>
+      </section>
+      <button id="toggleManual" class="secondary add-manual" type="button" aria-expanded="false" aria-controls="manualPanel">공원 추가</button>
+      <section id="manualPanel" class="manual-panel" aria-label="수동 마커 추가" hidden>
+        <label class="manual-toggle">
+          <input id="manualMode" type="checkbox">
+          지도 클릭으로 새 공원 추가
+        </label>
+        <p class="manual-help">체크한 뒤 지도 위치를 클릭하고 정보를 입력하면 목록과 CSV 저장 대상에 추가됩니다.</p>
+        <div class="manual-grid">
+          <label>위도
+            <input id="manualLat" type="text" inputmode="decimal" placeholder="지도 클릭" readonly>
+          </label>
+          <label>경도
+            <input id="manualLng" type="text" inputmode="decimal" placeholder="지도 클릭" readonly>
+          </label>
+        </div>
+        <label>공원명
+          <input id="manualName" type="text" placeholder="예: 새공원">
+        </label>
+        <div class="manual-grid">
+          <label>공원 종류
+            <select id="manualCategory">
+              <option value="어린이공원">어린이공원</option>
+              <option value="근린공원">근린공원</option>
+              <option value="소공원">소공원</option>
+              <option value="기타공원">기타공원</option>
+              <option value="도시자연공원">도시자연공원</option>
+            </select>
+          </label>
+          <label>동
+            <input id="manualDong" type="text" placeholder="예: 범어동">
+          </label>
+        </div>
+        <label>주소
+          <input id="manualAddress" type="text" placeholder="예: 범어동 000-0">
+        </label>
+        <label>비고/시설
+          <textarea id="manualFacility" placeholder="시설, 참고사항 등"></textarea>
+        </label>
+        <div class="manual-actions">
+          <button id="saveManual" class="download" type="button">마커 저장</button>
+          <button id="clearManual" class="secondary" type="button">입력 지우기</button>
+        </div>
+      </section>
+      <div id="filters" class="filters" aria-label="동 선택"></div>
+    </section>
+
+    <main id="list" class="table-wrap" aria-label="공원 번호 매핑 표"></main>
+    <section class="source">
+      <strong>기반 자료</strong><br>
+      `공원현황(홈페이지 발췌).xlsx`의 Sheet1 (2) 92개 행을 원장으로 사용했습니다.
+      지도 좌표는 카카오맵 services 주소검색 결과이며, 분류는 엑셀의 구분 값을 기준으로 합니다.
+    </section>
+  </aside>
+
+  <section class="map-wrap" aria-label="수성구 공원 지도">
+    <div id="map"></div>
+  </section>
+
+  <script src="./parks-data.js"></script>
+  <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=3e8f0eb6cee8d40c2bd6b6de76352050&libraries=services&autoload=false"></script>
+  <script>
+    const state = {
+      dong: "전체",
+      query: ""
+    };
+
+    const CUSTOM_PARKS_KEY = "suseong-custom-parks";
+    const GITHUB_SETTINGS_KEY = "suseong-github-settings";
+    const coords = new Map();
+    const failures = new Set();
+    const overlays = [];
+    let customParks = [];
+    let map;
+    let geocoder;
+    let places;
+    let infoOverlay;
+    let tempOverlay;
+
+    const list = document.querySelector("#list");
+    const filters = document.querySelector("#filters");
+    const search = document.querySelector("#search");
+    const downloadCsv = document.querySelector("#downloadCsv");
+    const toggleOnline = document.querySelector("#toggleOnline");
+    const githubPanel = document.querySelector("#githubPanel");
+    const githubToken = document.querySelector("#githubToken");
+    const syncStatus = document.querySelector("#syncStatus");
+    const toggleManual = document.querySelector("#toggleManual");
+    const manualPanel = document.querySelector("#manualPanel");
+    const manualMode = document.querySelector("#manualMode");
+    const manualLat = document.querySelector("#manualLat");
+    const manualLng = document.querySelector("#manualLng");
+    const manualName = document.querySelector("#manualName");
+    const manualCategory = document.querySelector("#manualCategory");
+    const manualDong = document.querySelector("#manualDong");
+    const manualAddress = document.querySelector("#manualAddress");
+    const manualFacility = document.querySelector("#manualFacility");
+    const saveManual = document.querySelector("#saveManual");
+    const clearManual = document.querySelector("#clearManual");
+    const countParks = document.querySelector("#countParks");
+    const countDongs = document.querySelector("#countDongs");
+    const countMapped = document.querySelector("#countMapped");
+    const countFailed = document.querySelector("#countFailed");
+
+    function allParks() {
+      return [...PARKS, ...customParks];
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function classifyPark(park) {
+      if (park.category === "어린이공원") {
+        return { key: "child", label: "어린이" };
+      }
+      if (park.category === "근린공원") {
+        return { key: "neighborhood", label: "근린" };
+      }
+      if (park.category === "소공원") {
+        return { key: "small", label: "소공원" };
+      }
+      return { key: "general", label: "일반" };
+    }
+
+    function sortedParks(data) {
+      return data
+        .slice()
+        .sort((a, b) => a.dong.localeCompare(b.dong, "ko") || String(a.seq).localeCompare(String(b.seq), "ko", { numeric: true }));
+    }
+
+    function numberByDong(data) {
+      const counts = new Map();
+      return sortedParks(data).map((park) => {
+        const number = (counts.get(park.dong) || 0) + 1;
+        counts.set(park.dong, number);
+        return { ...park, number, type: classifyPark(park), coord: coords.get(park.seq) };
+      });
+    }
+
+    function filteredParks() {
+      const query = state.query.trim().toLowerCase();
+      return allParks().filter((park) => {
+        const inDong = state.dong === "전체" || park.dong === state.dong;
+        const inQuery = !query || `${park.name} ${park.dong} ${park.category} ${park.address} ${park.facility}`.toLowerCase().includes(query);
+        return inDong && inQuery;
+      });
+    }
+
+    function renderFilters() {
+      const parks = allParks();
+      const dongs = ["전체", ...Array.from(new Set(parks.map((park) => park.dong))).filter(Boolean).sort((a, b) => a.localeCompare(b, "ko"))];
+      filters.innerHTML = "";
+      dongs.forEach((dong) => {
+        const count = dong === "전체" ? parks.length : parks.filter((park) => park.dong === dong).length;
+        const button = document.createElement("button");
+        button.className = `chip ${state.dong === dong ? "active" : ""}`;
+        button.type = "button";
+        button.textContent = `${dong} ${count}`;
+        button.addEventListener("click", () => {
+          state.dong = dong;
+          render();
+        });
+        filters.appendChild(button);
+      });
+    }
+
+    function showInfo(park, position) {
+      if (infoOverlay) {
+        infoOverlay.setMap(null);
+      }
+      const content = document.createElement("div");
+      content.className = "info";
+      content.innerHTML = `
+        <strong>${escapeHtml(park.dong)} ${park.number}번 · ${escapeHtml(park.name)}</strong>
+        <div>${escapeHtml(park.category)}</div>
+        <div>${escapeHtml(park.address || park.fullAddress)}</div>
+        <div>${park.source === "manual" ? "직접 추가" : `원장 연번 ${escapeHtml(park.seq)}`}</div>
+        ${park.facility ? `<div>${escapeHtml(park.facility)}</div>` : ""}
+        ${park.source === "manual" ? '<div class="info-actions"><button class="delete-custom" type="button">삭제</button></div>' : ""}
+      `;
+      const deleteButton = content.querySelector(".delete-custom");
+      if (deleteButton) {
+        deleteButton.addEventListener("click", () => deleteCustomPark(park.seq));
+      }
+      infoOverlay = new kakao.maps.CustomOverlay({
+        map,
+        position,
+        content,
+        yAnchor: 1.25
+      });
+    }
+
+    function focusPark(park) {
+      const coord = park.coord || coords.get(park.seq);
+      if (!coord || !map) return;
+      const position = new kakao.maps.LatLng(coord.lat, coord.lng);
+      map.setCenter(position);
+      map.setLevel(3);
+      showInfo(park, position);
+    }
+
+    function clearMap() {
+      overlays.forEach((overlay) => overlay.setMap(null));
+      overlays.length = 0;
+      if (infoOverlay) {
+        infoOverlay.setMap(null);
+        infoOverlay = null;
+      }
+    }
+
+    function renderMap(data) {
+      if (!map) return;
+      clearMap();
+      const bounds = new kakao.maps.LatLngBounds();
+      let hasPoint = false;
+
+      data.forEach((park) => {
+        if (!park.coord) return;
+        const position = new kakao.maps.LatLng(park.coord.lat, park.coord.lng);
+        const pin = document.createElement("div");
+        pin.className = `pin ${park.type.key}`;
+        pin.textContent = park.number;
+        pin.title = `${park.dong} ${park.number}번 ${park.name}`;
+        pin.addEventListener("click", () => showInfo(park, position));
+        const overlay = new kakao.maps.CustomOverlay({
+          map,
+          position,
+          content: pin,
+          yAnchor: 0.5
+        });
+        overlays.push(overlay);
+        bounds.extend(position);
+        hasPoint = true;
+      });
+
+      if (hasPoint) {
+        map.setBounds(bounds);
+      }
+    }
+
+    function renderTable(data) {
+      list.innerHTML = "";
+      const table = document.createElement("table");
+      table.className = "park-table";
+      table.innerHTML = `
+        <thead>
+          <tr>
+            <th>동</th>
+            <th>번호</th>
+            <th>분류</th>
+            <th>공원명</th>
+            <th>좌표</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      `;
+      const body = table.querySelector("tbody");
+      data.forEach((park) => {
+        const row = document.createElement("tr");
+        row.className = "park-row";
+        row.tabIndex = 0;
+        const status = park.source === "manual"
+          ? '<span class="custom-mark">직접추가</span> <button class="delete-custom" type="button">삭제</button>'
+          : park.coord ? "표시" : failures.has(park.seq) ? '<span class="failed">미확인</span>' : "검색중";
+        row.innerHTML = `
+          <td>${escapeHtml(park.dong)}</td>
+          <td><span class="num">${park.number}</span></td>
+          <td><span class="tag ${park.type.key}">${park.type.label}</span></td>
+          <td>${escapeHtml(park.name)}</td>
+          <td>${status}</td>
+        `;
+        const deleteButton = row.querySelector(".delete-custom");
+        if (deleteButton) {
+          deleteButton.addEventListener("click", (event) => {
+            event.stopPropagation();
+            deleteCustomPark(park.seq);
+          });
+        }
+        row.addEventListener("click", () => focusPark(park));
+        row.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            focusPark(park);
+          }
+        });
+        body.appendChild(row);
+      });
+      list.appendChild(table);
+    }
+
+    function renderStats(data) {
+      countParks.textContent = data.length;
+      countDongs.textContent = new Set(data.map((park) => park.dong)).size;
+      countMapped.textContent = data.filter((park) => park.coord).length;
+      countFailed.textContent = data.filter((park) => failures.has(park.seq)).length;
+    }
+
+    function render() {
+      const data = numberByDong(filteredParks());
+      renderFilters();
+      renderStats(data);
+      renderTable(data);
+      renderMap(data);
+    }
+
+    function csvCell(value) {
+      const text = String(value ?? "");
+      return `"${text.replaceAll('"', '""')}"`;
+    }
+
+    function downloadCurrentCsv() {
+      const data = numberByDong(filteredParks());
+      const header = ["동", "번호", "분류", "공원명", "주소", "비고/시설", "원장연번", "자료구분", "위도", "경도", "좌표상태"];
+      const rows = data.map((park) => [
+        park.dong,
+        park.number,
+        park.category,
+        park.name,
+        park.address,
+        park.facility,
+        park.seq,
+        park.source === "manual" ? "직접추가" : "원본",
+        park.coord?.lat ?? "",
+        park.coord?.lng ?? "",
+        park.coord ? "표시" : park.source === "manual" ? "직접입력" : failures.has(park.seq) ? "미확인" : "검색중"
+      ]);
+      const csv = [header, ...rows].map((row) => row.map(csvCell).join(",")).join("\r\n");
+      const blob = new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const dongName = state.dong === "전체" ? "전체" : state.dong;
+      const querySuffix = state.query.trim() ? "_검색결과" : "";
+      link.href = url;
+      link.download = `수성구_공원_${dongName}${querySuffix}_번호매핑.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function saveCoord(park, lat, lng) {
+      const coord = { lat: Number(lat), lng: Number(lng) };
+      coords.set(park.seq, coord);
+      localStorage.setItem(`suseong-park-coord-${park.seq}`, JSON.stringify(coord));
+    }
+
+    function restoreCoords() {
+      PARKS.forEach((park) => {
+        const saved = localStorage.getItem(`suseong-park-coord-${park.seq}`);
+        if (!saved) return;
+        try {
+          coords.set(park.seq, JSON.parse(saved));
+        } catch (_) {
+          localStorage.removeItem(`suseong-park-coord-${park.seq}`);
+        }
+      });
+    }
+
+    function saveCustomParks() {
+      localStorage.setItem(CUSTOM_PARKS_KEY, JSON.stringify(customParks));
+    }
+
+    function setSyncStatus(message, type = "") {
+      syncStatus.textContent = message;
+      syncStatus.className = `sync-status ${type}`.trim();
+    }
+
+    function inferGithubRepo() {
+      const host = window.location.hostname;
+      const match = host.match(/^([^.]+)\.github\.io$/);
+      if (!match) return "";
+
+      const owner = match[1];
+      const project = window.location.pathname.split("/").filter(Boolean)[0];
+      return project ? `${owner}/${project}` : `${owner}/${owner}.github.io`;
+    }
+
+    function getGithubSettings() {
+      return {
+        repo: inferGithubRepo(),
+        branch: "main",
+        path: "custom-parks.json",
+        token: githubToken.value.trim()
+      };
+    }
+
+    function saveGithubSettings() {
+      const settings = getGithubSettings();
+      localStorage.setItem(GITHUB_SETTINGS_KEY, JSON.stringify(settings));
+    }
+
+    function restoreGithubSettings() {
+      const saved = localStorage.getItem(GITHUB_SETTINGS_KEY);
+      if (!saved) return;
+      try {
+        const settings = JSON.parse(saved);
+        githubToken.value = settings.token || "";
+      } catch (_) {
+        localStorage.removeItem(GITHUB_SETTINGS_KEY);
+      }
+    }
+
+    function githubFileUrl(settings) {
+      const encodedPath = settings.path.split("/").map(encodeURIComponent).join("/");
+      return `https://api.github.com/repos/${settings.repo}/contents/${encodedPath}?ref=${encodeURIComponent(settings.branch)}`;
+    }
+
+    function encodeBase64Utf8(value) {
+      const bytes = new TextEncoder().encode(value);
+      let binary = "";
+      bytes.forEach((byte) => {
+        binary += String.fromCharCode(byte);
+      });
+      return btoa(binary);
+    }
+
+    function decodeBase64Utf8(value) {
+      const binary = atob(value.replace(/\s/g, ""));
+      const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+      return new TextDecoder().decode(bytes);
+    }
+
+    function validateGithubSettings(settings) {
+      if (!/^[^/\s]+\/[^/\s]+$/.test(settings.repo)) {
+        throw new Error("github.io 사이트에서 열어야 저장소를 자동으로 찾을 수 있습니다.");
+      }
+      if (!settings.token) {
+        throw new Error("GitHub 토큰을 입력하세요.");
+      }
+    }
+
+    function normalizeCustomParks(data) {
+      return data
+        .filter((park) => park && park.seq && park.coord)
+        .map((park) => ({
+          seq: park.seq,
+          category: park.category || "기타공원",
+          name: park.name || "",
+          dong: park.dong || "",
+          address: park.address || "",
+          fullAddress: park.fullAddress || park.address || "",
+          area: park.area || "",
+          facility: park.facility || "",
+          source: "manual",
+          coord: {
+            lat: Number(park.coord.lat),
+            lng: Number(park.coord.lng)
+          }
+        }))
+        .filter((park) => park.name && park.dong && Number.isFinite(park.coord.lat) && Number.isFinite(park.coord.lng));
+    }
+
+    async function fetchGithubFile(settings) {
+      const response = await fetch(githubFileUrl(settings), {
+        headers: {
+          Authorization: `Bearer ${settings.token}`,
+          Accept: "application/vnd.github+json"
+        }
+      });
+
+      if (response.status === 404) {
+        return { sha: null, parks: [] };
+      }
+      if (!response.ok) {
+        throw new Error(`GitHub 파일 조회 실패 (${response.status})`);
+      }
+
+      const file = await response.json();
+      const parks = file.content ? normalizeCustomParks(JSON.parse(decodeBase64Utf8(file.content))) : [];
+      return { sha: file.sha, parks };
+    }
+
+    async function loadCustomParksFromGithub() {
+      const settings = getGithubSettings();
+      validateGithubSettings(settings);
+      saveGithubSettings();
+      setSyncStatus("GitHub에서 불러오는 중...");
+      const remote = await fetchGithubFile(settings);
+      customParks = remote.parks;
+      coords.forEach((_, key) => {
+        if (String(key).startsWith("manual-")) coords.delete(key);
+      });
+      customParks.forEach((park) => coords.set(park.seq, park.coord));
+      saveCustomParks();
+      render();
+      setSyncStatus(`GitHub에서 ${customParks.length}개 항목을 불러왔습니다.`, "ok");
+    }
+
+    async function saveCustomParksToGithub({ silent = false } = {}) {
+      const settings = getGithubSettings();
+      validateGithubSettings(settings);
+      saveGithubSettings();
+      if (!silent) setSyncStatus("GitHub에 저장하는 중...");
+
+      const remote = await fetchGithubFile(settings);
+      const content = JSON.stringify(customParks, null, 2);
+      const body = {
+        message: `Update custom park markers (${new Date().toISOString()})`,
+        content: encodeBase64Utf8(content),
+        branch: settings.branch
+      };
+      if (remote.sha) {
+        body.sha = remote.sha;
+      }
+
+      const response = await fetch(githubFileUrl({ ...settings, branch: settings.branch }).replace(`?ref=${encodeURIComponent(settings.branch)}`, ""), {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${settings.token}`,
+          Accept: "application/vnd.github+json",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) {
+        throw new Error(`GitHub 저장 실패 (${response.status})`);
+      }
+      setSyncStatus(`GitHub에 ${customParks.length}개 항목을 저장했습니다.`, "ok");
+    }
+
+    function hasGithubSyncSettings() {
+      const settings = getGithubSettings();
+      return Boolean(settings.repo && settings.token);
+    }
+
+    async function autoSaveGithub() {
+      if (!hasGithubSyncSettings()) {
+        setSyncStatus("GitHub 설정을 입력하면 다음 저장부터 자동으로 GitHub에 저장됩니다.");
+        return;
+      }
+      await saveCustomParksToGithub();
+    }
+
+    function restoreCustomParks() {
+      const saved = localStorage.getItem(CUSTOM_PARKS_KEY);
+      if (!saved) return;
+      try {
+        customParks = JSON.parse(saved).filter((park) => park && park.seq && park.coord);
+        customParks.forEach((park) => coords.set(park.seq, park.coord));
+      } catch (_) {
+        localStorage.removeItem(CUSTOM_PARKS_KEY);
+        customParks = [];
+      }
+    }
+
+    async function loadCustomParksFromFile() {
+      try {
+        const response = await fetch("./custom-parks.json?" + Date.now());
+        if (!response.ok) return;
+        const data = await response.json();
+        const parks = normalizeCustomParks(data);
+        if (parks.length === 0) return;
+        const localSeqs = new Set(customParks.map((p) => p.seq));
+        let added = 0;
+        parks.forEach((park) => {
+          if (!localSeqs.has(park.seq)) {
+            customParks.push(park);
+            coords.set(park.seq, park.coord);
+            added++;
+          }
+        });
+        if (added > 0) {
+          saveCustomParks();
+          render();
+        }
+      } catch (_) {}
+    }
+
+    function setManualPosition(latLng) {
+      const lat = latLng.getLat();
+      const lng = latLng.getLng();
+      manualLat.value = lat.toFixed(7);
+      manualLng.value = lng.toFixed(7);
+
+      if (tempOverlay) {
+        tempOverlay.setMap(null);
+      }
+      const pin = document.createElement("div");
+      pin.className = "temp-pin";
+      pin.textContent = "+";
+      tempOverlay = new kakao.maps.CustomOverlay({
+        map,
+        position: latLng,
+        content: pin,
+        yAnchor: 0.5
+      });
+      manualName.focus();
+    }
+
+    function clearManualForm() {
+      manualLat.value = "";
+      manualLng.value = "";
+      manualName.value = "";
+      manualCategory.value = "어린이공원";
+      manualDong.value = "";
+      manualAddress.value = "";
+      manualFacility.value = "";
+      if (tempOverlay) {
+        tempOverlay.setMap(null);
+        tempOverlay = null;
+      }
+    }
+
+    function setManualPanelOpen(isOpen) {
+      manualPanel.hidden = !isOpen;
+      toggleManual.setAttribute("aria-expanded", String(isOpen));
+      toggleManual.textContent = isOpen ? "추가 닫기" : "공원 추가";
+      manualMode.checked = isOpen;
+      if (isOpen) {
+        manualName.focus();
+      } else {
+        clearManualForm();
+      }
+    }
+
+    function setGithubPanelOpen(isOpen) {
+      githubPanel.hidden = !isOpen;
+      toggleOnline.setAttribute("aria-expanded", String(isOpen));
+      toggleOnline.textContent = isOpen ? "온라인 저장 닫기" : "온라인 저장";
+      if (isOpen) {
+        githubToken.focus();
+      }
+    }
+
+    async function saveManualPark() {
+      const lat = Number(manualLat.value);
+      const lng = Number(manualLng.value);
+      const name = manualName.value.trim();
+      const dong = manualDong.value.trim();
+      const category = manualCategory.value;
+      const address = manualAddress.value.trim();
+      const facility = manualFacility.value.trim();
+
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+        alert("먼저 '지도 클릭으로 새 공원 추가'를 켜고 지도 위치를 클릭하세요.");
+        return;
+      }
+      if (!name || !dong || !category) {
+        alert("공원명, 공원 종류, 동은 반드시 입력해야 합니다.");
+        return;
+      }
+
+      const seq = `manual-${Date.now()}`;
+      const coord = { lat, lng };
+      const park = {
+        seq,
+        category,
+        name,
+        dong,
+        address,
+        fullAddress: address,
+        area: "",
+        facility,
+        source: "manual",
+        coord
+      };
+      customParks.push(park);
+      coords.set(seq, coord);
+      saveCustomParks();
+      clearManualForm();
+      state.dong = dong;
+      state.query = "";
+      search.value = "";
+      render();
+      focusPark({ ...park, number: numberByDong(filteredParks()).find((item) => item.seq === seq)?.number ?? 1, type: classifyPark(park) });
+      try {
+        await autoSaveGithub();
+      } catch (error) {
+        setSyncStatus(error.message, "error");
+      }
+    }
+
+    async function deleteCustomPark(seq) {
+      customParks = customParks.filter((park) => park.seq !== seq);
+      coords.delete(seq);
+      saveCustomParks();
+      if (infoOverlay) {
+        infoOverlay.setMap(null);
+        infoOverlay = null;
+      }
+      render();
+      try {
+        await autoSaveGithub();
+      } catch (error) {
+        setSyncStatus(error.message, "error");
+      }
+    }
+
+    function geocodeAddress(park) {
+      return new Promise((resolve) => {
+        geocoder.addressSearch(park.fullAddress, (result, status) => {
+          if (status === kakao.maps.services.Status.OK && result[0]) {
+            saveCoord(park, result[0].y, result[0].x);
+            resolve(true);
+            return;
+          }
+          const keyword = `${park.name} 대구 수성구`;
+          places.keywordSearch(keyword, (placesResult, placesStatus) => {
+            if (placesStatus === kakao.maps.services.Status.OK && placesResult[0]) {
+              saveCoord(park, placesResult[0].y, placesResult[0].x);
+              resolve(true);
+              return;
+            }
+            failures.add(park.seq);
+            resolve(false);
+          }, { size: 1 });
+        });
+      });
+    }
+
+    async function geocodeAll() {
+      const targets = PARKS.filter((park) => !coords.has(park.seq));
+      for (const park of targets) {
+        await geocodeAddress(park);
+        render();
+      }
+    }
+
+    search.addEventListener("input", (event) => {
+      state.query = event.target.value;
+      render();
+    });
+
+    downloadCsv.addEventListener("click", downloadCurrentCsv);
+    githubToken.addEventListener("change", () => {
+      saveGithubSettings();
+      if (hasGithubSyncSettings()) {
+        loadCustomParksFromGithub().catch((error) => setSyncStatus(error.message, "error"));
+      }
+    });
+    toggleOnline.addEventListener("click", () => setGithubPanelOpen(githubPanel.hidden));
+    toggleManual.addEventListener("click", () => setManualPanelOpen(manualPanel.hidden));
+    saveManual.addEventListener("click", saveManualPark);
+    clearManual.addEventListener("click", clearManualForm);
+
+    restoreCoords();
+    restoreCustomParks();
+    restoreGithubSettings();
+    render();
+    loadCustomParksFromFile();
+    if (hasGithubSyncSettings()) {
+      loadCustomParksFromGithub().catch((error) => setSyncStatus(error.message, "error"));
+    }
+
+    kakao.maps.load(() => {
+      const center = new kakao.maps.LatLng(35.842, 128.655);
+      map = new kakao.maps.Map(document.querySelector("#map"), {
+        center,
+        level: 7
+      });
+      geocoder = new kakao.maps.services.Geocoder();
+      places = new kakao.maps.services.Places();
+      kakao.maps.event.addListener(map, "click", (mouseEvent) => {
+        if (!manualMode.checked) return;
+        setManualPosition(mouseEvent.latLng);
+      });
+      render();
+      geocodeAll();
+    });
+  </script>
+</body>
+</html>
