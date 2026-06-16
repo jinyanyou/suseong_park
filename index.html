@@ -574,7 +574,11 @@
         <label>GitHub 토큰
           <input id="githubToken" type="password" placeholder="fine-grained token">
         </label>
-        <p id="syncStatus" class="sync-status">토큰을 입력하면 저장소를 자동으로 찾아 저장/삭제 때 GitHub에 반영합니다.</p>
+        <div class="github-actions">
+          <button id="githubSave" class="download" type="button">GitHub에 저장</button>
+          <button id="githubLoad" class="secondary" type="button">GitHub에서 불러오기</button>
+        </div>
+        <p id="syncStatus" class="sync-status">토큰을 입력하고 저장 버튼을 누르면 좌표 수정·추가 공원이 GitHub에 반영됩니다.</p>
       </section>
       <button id="toggleCsvUpload" class="secondary add-manual" type="button" aria-expanded="false" aria-controls="csvUploadPanel">CSV 업로드</button>
       <section id="csvUploadPanel" class="manual-panel" aria-label="CSV 파일 업로드" hidden>
@@ -1582,6 +1586,12 @@
       }
     });
     toggleOnline.addEventListener("click", () => setGithubPanelOpen(githubPanel.hidden));
+    document.querySelector("#githubSave").addEventListener("click", () => {
+      saveCustomParksToGithub().catch((error) => setSyncStatus(error.message, "error"));
+    });
+    document.querySelector("#githubLoad").addEventListener("click", () => {
+      loadCustomParksFromGithub().catch((error) => setSyncStatus(error.message, "error"));
+    });
     toggleCsvUpload.addEventListener("click", () => setCsvPanelOpen(csvUploadPanel.hidden));
     csvFileInput.addEventListener("change", (event) => {
       const file = event.target.files[0];
