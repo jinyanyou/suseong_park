@@ -797,6 +797,7 @@
     let infoOverlay;
     let tempOverlay;
     let fixingPark = null;
+    let infoClickGuard = 0;
     const coordFixes = {};
 
     const list = document.querySelector("#list");
@@ -856,15 +857,18 @@
       const addr = String(address).trim();
       // "고산1 신매579-1" → "고산1"
       const prefixMatch = addr.match(/^(고산\d)/);
-      if (prefixMatch) return normalizeDong(prefixMatch[1]);
+      if (prefixMatch) return prefixMatch[1];
       // "만촌동산 407-10" → "만촌동산"
-      const dongSanMatch = addr.match(/^([가-힣]+동산)\s/);
-      if (dongSanMatch) return normalizeDong(dongSanMatch[1]);
-      // "범어2동 416-9" or "수성4가 1090-15" or "욱수동"
+      const dongSanMatch = addr.match(/^([가-힣]+동산)\b/);
+      if (dongSanMatch) return dongSanMatch[1];
+      // "범물1동1279-3" or "만촌2동 991-8" or "수성4가 1090-15" or "욱수동 19-2"
       const match = addr.match(/^([가-힣]+\d*[동가])/);
-      if (match) return normalizeDong(match[1]);
+      if (match) return match[1];
+      // "욱수동" 단독
+      const simple = addr.match(/^([가-힣]+동)/);
+      if (simple) return simple[1];
       // fallback: first word
-      return addr.split(/[\s,]/)[0] || "";
+      return addr.split(/[\s,\d]/)[0] || "";
     }
 
     function normalizeDong(rawDong) {
@@ -972,7 +976,7 @@
       const query = state.query.trim().toLowerCase();
       return allParks().filter((park) => {
         const inDong = state.dong === "전체" || park.dong === state.dong;
-        const inQuery = !query || `${park.name} ${park.dong} ${park.category} ${park.address} ${park.facility}`.toLowerCase().includes(query);
+        const inQuery = !query || `${park.name} ${park.dong} ${park.category} ${park.address}`.toLowerCase().includes(query);
         const inFailed = !state.failedOnly || (failures.has(park.seq) && !coords.has(park.seq));
         return inDong && inQuery && inFailed;
       });
@@ -1003,17 +1007,18 @@
       const content = document.createElement("div");
       content.className = "info";
       content.innerHTML = `
-        <strong>${escapeHtml(park.dong)} ${park.number}번 · ${escapeHtml(park.name)}</strong>
-        <div>${escapeHtml(park.category)}</div>
-        <div>${escapeHtml(park.address || park.fullAddress)}</div>
-        <div>${park.source === "manual" ? "직접 추가" : `원장 연번 ${escapeHtml(park.seq)}`}</div>
+        <strong>${escapeHtml(park.name)}</strong>
+        <div>${escapeHtml(park.category)} · ${escapeHtml(park.dong)}</div>
         <div class="info-actions">
           <button class="info-btn edit-btn" type="button">수정</button>
           <button class="info-btn relocate-btn" type="button">위치수정</button>
           <button class="info-btn delete-btn" type="button">삭제</button>
         </div>
       `;
+      content.addEventListener("click", (e) => { e.stopPropagation(); infoClickGuard = Date.now(); });
+      content.addEventListener("mousedown", () => { infoClickGuard = Date.now(); });
       content.querySelector(".edit-btn").addEventListener("click", () => {
+        infoClickGuard = Date.now();
         showEditForm(park, position);
       });
       content.querySelector(".relocate-btn").addEventListener("click", () => {
@@ -1072,7 +1077,8 @@
         infoOverlay = null;
         showInfo(park, position);
       });
-      content.addEventListener("click", (e) => e.stopPropagation());
+      content.addEventListener("click", (e) => { e.stopPropagation(); infoClickGuard = Date.now(); });
+      content.addEventListener("mousedown", () => { infoClickGuard = Date.now(); });
       infoOverlay = new kakao.maps.CustomOverlay({
         map,
         position,
@@ -2059,6 +2065,7 @@
       geocoder = new kakao.maps.services.Geocoder();
       places = new kakao.maps.services.Places();
       kakao.maps.event.addListener(map, "click", (mouseEvent) => {
+        if (Date.now() - infoClickGuard < 300) return;
         if (infoOverlay) {
           infoOverlay.setMap(null);
           infoOverlay = null;
