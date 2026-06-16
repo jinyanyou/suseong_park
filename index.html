@@ -704,9 +704,11 @@
     <div id="map"></div>
   </section>
 
-  <script src="./parks-data.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=3e8f0eb6cee8d40c2bd6b6de76352050&libraries=services&autoload=false"></script>
   <script>
+    let PARKS = [];
+
     const state = {
       dong: "전체",
       query: "",
@@ -716,6 +718,7 @@
     const CUSTOM_PARKS_KEY = "suseong-custom-parks";
     const COORD_FIXES_KEY = "suseong-coord-fixes";
     const GITHUB_SETTINGS_KEY = "suseong-github-settings";
+    const XLSX_FILE = "./공원현황(홈페이지 발췌).xlsx";
     const coords = new Map();
     const failures = new Set();
     const overlays = [];
@@ -759,6 +762,89 @@
 
     function allParks() {
       return [...PARKS, ...customParks];
+    }
+
+    function extractDong(address) {
+      const match = String(address).match(/^([가-힣]+[동가])\d*\s/);
+      if (match) return match[1].replace(/\d+$/, "");
+      const match2 = String(address).match(/^([가-힣]+[동가])\d*$/);
+      if (match2) return match2[1].replace(/\d+$/, "");
+      return String(address).split(/[\s,]/)[0] || "";
+    }
+
+    const DONG_MAP = {
+      "범어1동": "범어동", "범어2동": "범어동", "범어3동": "범어동",
+      "만촌1동": "만촌동", "만촌2동": "만촌동", "만촌3동": "만촌동",
+      "수성동3가": "수성동", "수성4가": "수성동", "수성4가동": "수성동",
+      "지산1동": "지산동", "지산2동": "지산동",
+      "범물1동": "범물동", "범물2동": "범물동",
+      "황금2동": "황금동",
+      "신매동": "고산동", "시지동": "고산동", "매호동": "고산동",
+      "노변동": "고산동", "사월동": "고산동",
+      "고산1": "고산동", "고산2": "고산동", "고산3": "고산동",
+    };
+
+    function normalizeDong(rawDong) {
+      const d = rawDong.replace(/\s/g, "");
+      return DONG_MAP[d] || d;
+    }
+
+    async function loadParksFromXlsx() {
+      try {
+        const response = await fetch(XLSX_FILE + "?" + Date.now());
+        if (!response.ok) throw new Error("xlsx 파일을 불러올 수 없습니다.");
+        const buffer = await response.arrayBuffer();
+        const workbook = XLSX.read(buffer, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+
+        let headerIdx = -1;
+        for (let i = 0; i < rows.length; i++) {
+          const row = rows[i].map((c) => String(c).trim());
+          if (row.includes("연번") && row.includes("공원명")) {
+            headerIdx = i;
+            break;
+          }
+        }
+        if (headerIdx === -1) throw new Error("헤더 행을 찾을 수 없습니다.");
+
+        const parks = [];
+        let lastCategory = "";
+
+        for (let i = headerIdx + 1; i < rows.length; i++) {
+          const row = rows[i];
+          const seq = Number(row[0]);
+          if (!seq && seq !== 0) continue;
+
+          const category = String(row[1]).trim() || lastCategory;
+          if (String(row[1]).trim()) lastCategory = category;
+
+          const name = String(row[2]).trim();
+          if (!name) continue;
+
+          const address = String(row[3]).trim();
+          const area = String(row[4]).trim();
+          const facility = String(row[5] || "").trim();
+          const rawDong = extractDong(address);
+          const dong = normalizeDong(rawDong);
+
+          parks.push({
+            seq,
+            category,
+            name: category === "어린이공원" && !name.includes("어린이공원") ? name + "어린이공원" : name,
+            dong,
+            address,
+            fullAddress: `대구광역시 수성구 ${address}`,
+            area,
+            facility
+          });
+        }
+
+        return parks;
+      } catch (error) {
+        console.error("xlsx 로드 실패:", error);
+        return [];
+      }
     }
 
     function escapeHtml(value) {
@@ -1659,15 +1745,29 @@
     saveManual.addEventListener("click", saveManualPark);
     clearManual.addEventListener("click", clearManualForm);
 
-    restoreCoords();
-    restoreCoordFixes();
-    restoreCustomParks();
-    restoreGithubSettings();
-    render();
-    loadCustomParksFromFile();
-    if (hasGithubSyncSettings()) {
-      loadCustomParksFromGithub().catch((error) => setSyncStatus(error.message, "error"));
+    let parksReady = false;
+    let mapReady = false;
+
+    function tryGeocodeAll() {
+      if (parksReady && mapReady) geocodeAll();
     }
+
+    async function init() {
+      PARKS = await loadParksFromXlsx();
+      restoreCoords();
+      restoreCoordFixes();
+      restoreCustomParks();
+      restoreGithubSettings();
+      render();
+      loadCustomParksFromFile();
+      if (hasGithubSyncSettings()) {
+        loadCustomParksFromGithub().catch((error) => setSyncStatus(error.message, "error"));
+      }
+      parksReady = true;
+      tryGeocodeAll();
+    }
+
+    init();
 
     kakao.maps.load(() => {
       const center = new kakao.maps.LatLng(35.842, 128.655);
@@ -1693,7 +1793,8 @@
         setManualPosition(mouseEvent.latLng);
       });
       render();
-      geocodeAll();
+      mapReady = true;
+      tryGeocodeAll();
     });
   </script>
 </body>
