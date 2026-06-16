@@ -1444,63 +1444,6 @@
         .filter((park) => park.name && park.dong && Number.isFinite(park.coord.lat) && Number.isFinite(park.coord.lng));
     }
 
-    async function fetchGithubFile(settings) {
-      const response = await fetch(githubFileUrl(settings), {
-        headers: {
-          Authorization: `Bearer ${settings.token}`,
-          Accept: "application/vnd.github+json"
-        }
-      });
-
-      if (response.status === 404) {
-        return { sha: null, parks: [] };
-      }
-      if (!response.ok) {
-        throw new Error(`GitHub 파일 조회 실패 (${response.status})`);
-      }
-
-      const file = await response.json();
-      const parks = file.content ? normalizeCustomParks(JSON.parse(decodeBase64Utf8(file.content))) : [];
-      return { sha: file.sha, parks };
-    }
-
-    async function loadCustomParksFromGithub() {
-      const settings = getGithubSettings();
-      validateGithubSettings(settings);
-      saveGithubSettings();
-      setSyncStatus("GitHub에서 불러오는 중...");
-
-      const remote = await fetchGithubFile(settings);
-      customParks = remote.parks;
-      coords.forEach((_, key) => {
-        if (String(key).startsWith("manual-")) coords.delete(key);
-      });
-      customParks.forEach((park) => coords.set(park.seq, park.coord));
-      saveCustomParks();
-
-      const fixesSettings = { ...settings, path: "coord-fixes.json" };
-      const fixesRemote = await fetchCoordFixesFile(fixesSettings);
-      Object.entries(fixesRemote.fixes).forEach(([seq, coord]) => {
-        const numSeq = Number(seq);
-        coordFixes[numSeq] = coord;
-        coords.set(numSeq, coord);
-        failures.delete(numSeq);
-      });
-      saveCoordFixes();
-
-      const overridesSettings = { ...settings, path: "park-overrides.json" };
-      const overridesRemote = await fetchJsonFile(overridesSettings);
-      if (overridesRemote.data) {
-        parkOverrides.deleted = new Set(overridesRemote.data.deleted || []);
-        parkOverrides.edits = overridesRemote.data.edits || {};
-        saveOverrides();
-      }
-
-      render();
-      const fixCount = Object.keys(fixesRemote.fixes).length;
-      setSyncStatus(`GitHub에서 동기화 완료.`, "ok");
-    }
-
     async function fetchJsonFile(settings) {
       const response = await fetch(githubFileUrl(settings), {
         headers: {
@@ -1515,38 +1458,53 @@
       return { sha: file.sha, data };
     }
 
-    async function fetchCoordFixesFile(settings) {
-      const response = await fetch(githubFileUrl(settings), {
-        headers: {
-          Authorization: `Bearer ${settings.token}`,
-          Accept: "application/vnd.github+json"
-        }
-      });
-      if (response.status === 404) return { sha: null, fixes: {} };
-      if (!response.ok) throw new Error(`GitHub 좌표 파일 조회 실패 (${response.status})`);
-      const file = await response.json();
-      const fixes = file.content ? JSON.parse(decodeBase64Utf8(file.content)) : {};
-      return { sha: file.sha, fixes };
-    }
-
-    async function saveCustomParksToGithub({ silent = false } = {}) {
+    async function loadCustomParksFromGithub() {
       const settings = getGithubSettings();
       validateGithubSettings(settings);
       saveGithubSettings();
-      if (!silent) setSyncStatus("GitHub에 저장하는 중...");
+      setSyncStatus("GitHub에서 불러오는 중...");
 
-      const remote = await fetchGithubFile(settings);
-      const content = JSON.stringify(customParks, null, 2);
+      const parksRemote = await fetchJsonFile(settings);
+      customParks = parksRemote.data ? normalizeCustomParks(parksRemote.data) : [];
+      coords.forEach((_, key) => {
+        if (String(key).startsWith("manual-")) coords.delete(key);
+      });
+      customParks.forEach((park) => coords.set(park.seq, park.coord));
+      saveCustomParks();
+
+      const fixesRemote = await fetchJsonFile({ ...settings, path: "coord-fixes.json" });
+      if (fixesRemote.data) {
+        Object.entries(fixesRemote.data).forEach(([seq, coord]) => {
+          const numSeq = Number(seq);
+          coordFixes[numSeq] = coord;
+          coords.set(numSeq, coord);
+          failures.delete(numSeq);
+        });
+        saveCoordFixes();
+      }
+
+      const overridesRemote = await fetchJsonFile({ ...settings, path: "park-overrides.json" });
+      if (overridesRemote.data) {
+        parkOverrides.deleted = new Set(overridesRemote.data.deleted || []);
+        parkOverrides.edits = overridesRemote.data.edits || {};
+        saveOverrides();
+      }
+
+      render();
+      setSyncStatus(`GitHub에서 동기화 완료.`, "ok");
+    }
+
+    async function putGithubFile(settings, path, content, message) {
+      const fileSettings = { ...settings, path };
+      const remote = await fetchJsonFile(fileSettings);
       const body = {
-        message: `Update custom park markers (${new Date().toISOString()})`,
+        message,
         content: encodeBase64Utf8(content),
         branch: settings.branch
       };
-      if (remote.sha) {
-        body.sha = remote.sha;
-      }
-
-      const response = await fetch(githubFileUrl({ ...settings, branch: settings.branch }).replace(`?ref=${encodeURIComponent(settings.branch)}`, ""), {
+      if (remote.sha) body.sha = remote.sha;
+      const url = githubFileUrl(fileSettings).replace(`?ref=${encodeURIComponent(settings.branch)}`, "");
+      const response = await fetch(url, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${settings.token}`,
@@ -1555,63 +1513,30 @@
         },
         body: JSON.stringify(body)
       });
-
       if (!response.ok) {
-        throw new Error(`GitHub 공원 저장 실패 (${response.status})`);
+        throw new Error(`GitHub 저장 실패: ${path} (${response.status})`);
       }
+    }
 
-      const fixesSettings = { ...settings, path: "coord-fixes.json" };
-      const fixesRemote = await fetchCoordFixesFile(fixesSettings);
-      const fixesContent = JSON.stringify(coordFixes, null, 2);
-      const fixesBody = {
-        message: `Update coord fixes (${new Date().toISOString()})`,
-        content: encodeBase64Utf8(fixesContent),
-        branch: settings.branch
-      };
-      if (fixesRemote.sha) {
-        fixesBody.sha = fixesRemote.sha;
-      }
+    async function saveCustomParksToGithub({ silent = false } = {}) {
+      const settings = getGithubSettings();
+      validateGithubSettings(settings);
+      saveGithubSettings();
+      if (!silent) setSyncStatus("GitHub에 저장하는 중...");
 
-      const fixesResponse = await fetch(githubFileUrl(fixesSettings).replace(`?ref=${encodeURIComponent(settings.branch)}`, ""), {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${settings.token}`,
-          Accept: "application/vnd.github+json",
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(fixesBody)
-      });
+      const ts = new Date().toISOString();
 
-      if (!fixesResponse.ok) {
-        throw new Error(`GitHub 좌표 저장 실패 (${fixesResponse.status})`);
-      }
+      await putGithubFile(settings, "custom-parks.json",
+        JSON.stringify(customParks, null, 2),
+        `Update custom parks (${ts})`);
 
-      const overridesSettings = { ...settings, path: "park-overrides.json" };
-      const overridesRemote = await fetchJsonFile(overridesSettings);
-      const overridesContent = JSON.stringify({
-        deleted: [...parkOverrides.deleted],
-        edits: parkOverrides.edits
-      }, null, 2);
-      const overridesBody = {
-        message: `Update park overrides (${new Date().toISOString()})`,
-        content: encodeBase64Utf8(overridesContent),
-        branch: settings.branch
-      };
-      if (overridesRemote.sha) {
-        overridesBody.sha = overridesRemote.sha;
-      }
-      const overridesResponse = await fetch(githubFileUrl(overridesSettings).replace(`?ref=${encodeURIComponent(settings.branch)}`, ""), {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${settings.token}`,
-          Accept: "application/vnd.github+json",
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(overridesBody)
-      });
-      if (!overridesResponse.ok) {
-        throw new Error(`GitHub 수정사항 저장 실패 (${overridesResponse.status})`);
-      }
+      await putGithubFile(settings, "coord-fixes.json",
+        JSON.stringify(coordFixes, null, 2),
+        `Update coord fixes (${ts})`);
+
+      await putGithubFile(settings, "park-overrides.json",
+        JSON.stringify({ deleted: [...parkOverrides.deleted], edits: parkOverrides.edits }, null, 2),
+        `Update park overrides (${ts})`);
 
       setSyncStatus(`GitHub에 저장 완료.`, "ok");
     }
