@@ -576,6 +576,14 @@
         </label>
         <p id="syncStatus" class="sync-status">토큰을 입력하면 저장소를 자동으로 찾아 저장/삭제 때 GitHub에 반영합니다.</p>
       </section>
+      <button id="toggleCsvUpload" class="secondary add-manual" type="button" aria-expanded="false" aria-controls="csvUploadPanel">CSV 업로드</button>
+      <section id="csvUploadPanel" class="manual-panel" aria-label="CSV 파일 업로드" hidden>
+        <p class="manual-help">CSV 파일을 업로드하면 자동으로 지도에 표시됩니다.<br>
+          필수 열: <b>공원명, 동</b> (+ 분류, 주소, 비고/시설, 위도, 경도 선택)<br>
+          위도/경도가 있으면 바로 표시, 없으면 주소로 자동 검색합니다.</p>
+        <input id="csvFileInput" type="file" accept=".csv,.txt" style="font-size:13px">
+        <p id="csvStatus" class="sync-status"></p>
+      </section>
       <button id="toggleManual" class="secondary add-manual" type="button" aria-expanded="false" aria-controls="manualPanel">공원 추가</button>
       <section id="manualPanel" class="manual-panel" aria-label="수동 마커 추가" hidden>
         <label class="manual-toggle">
@@ -666,6 +674,10 @@
     const githubPanel = document.querySelector("#githubPanel");
     const githubToken = document.querySelector("#githubToken");
     const syncStatus = document.querySelector("#syncStatus");
+    const toggleCsvUpload = document.querySelector("#toggleCsvUpload");
+    const csvUploadPanel = document.querySelector("#csvUploadPanel");
+    const csvFileInput = document.querySelector("#csvFileInput");
+    const csvStatus = document.querySelector("#csvStatus");
     const toggleManual = document.querySelector("#toggleManual");
     const manualPanel = document.querySelector("#manualPanel");
     const manualMode = document.querySelector("#manualMode");
@@ -1265,6 +1277,136 @@
       } catch (_) {}
     }
 
+    function parseCsvText(text) {
+      const lines = text.split(/\r?\n/).filter((line) => line.trim());
+      if (lines.length < 2) return [];
+      const headers = parseCsvRow(lines[0]).map((h) => h.trim());
+      return lines.slice(1).map((line) => {
+        const values = parseCsvRow(line);
+        const obj = {};
+        headers.forEach((h, i) => { obj[h] = (values[i] || "").trim(); });
+        return obj;
+      });
+    }
+
+    function parseCsvRow(line) {
+      const result = [];
+      let current = "";
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (inQuotes) {
+          if (ch === '"' && line[i + 1] === '"') {
+            current += '"';
+            i++;
+          } else if (ch === '"') {
+            inQuotes = false;
+          } else {
+            current += ch;
+          }
+        } else {
+          if (ch === '"') {
+            inQuotes = true;
+          } else if (ch === ',') {
+            result.push(current);
+            current = "";
+          } else {
+            current += ch;
+          }
+        }
+      }
+      result.push(current);
+      return result;
+    }
+
+    function findColumn(row, ...candidates) {
+      for (const key of candidates) {
+        if (row[key] !== undefined) return row[key];
+      }
+      return "";
+    }
+
+    async function handleCsvUpload(file) {
+      csvStatus.textContent = "파일 읽는 중...";
+      csvStatus.className = "sync-status";
+      const text = await file.text();
+      const rows = parseCsvText(text);
+      if (rows.length === 0) {
+        csvStatus.textContent = "CSV에 데이터가 없습니다.";
+        csvStatus.className = "sync-status error";
+        return;
+      }
+
+      let added = 0;
+      let needGeocode = [];
+      const existingSeqs = new Set(customParks.map((p) => p.seq));
+
+      rows.forEach((row) => {
+        const name = findColumn(row, "공원명", "name", "이름");
+        const dong = findColumn(row, "동", "dong");
+        if (!name || !dong) return;
+
+        const seq = `csv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        if (existingSeqs.has(seq)) return;
+
+        const category = findColumn(row, "분류", "공원 종류", "category", "구분") || "기타공원";
+        const address = findColumn(row, "주소", "address");
+        const facility = findColumn(row, "비고/시설", "비고", "시설", "facility");
+        const latStr = findColumn(row, "위도", "lat", "latitude");
+        const lngStr = findColumn(row, "경도", "lng", "longitude", "lon");
+        const lat = Number(latStr);
+        const lng = Number(lngStr);
+
+        const park = {
+          seq,
+          category,
+          name,
+          dong,
+          address,
+          fullAddress: address ? `대구광역시 수성구 ${address}` : `대구광역시 수성구 ${dong}`,
+          area: findColumn(row, "면적", "area") || "",
+          facility,
+          source: "manual"
+        };
+
+        if (Number.isFinite(lat) && Number.isFinite(lng) && lat !== 0 && lng !== 0) {
+          park.coord = { lat, lng };
+          coords.set(seq, park.coord);
+        } else {
+          needGeocode.push(park);
+        }
+
+        customParks.push(park);
+        existingSeqs.add(seq);
+        added++;
+      });
+
+      saveCustomParks();
+      render();
+      csvStatus.textContent = `${added}개 공원 추가됨. 좌표 검색 중 ${needGeocode.length}개...`;
+      csvStatus.className = "sync-status ok";
+
+      if (geocoder && needGeocode.length > 0) {
+        for (const park of needGeocode) {
+          await geocodeAddress(park);
+          if (coords.has(park.seq)) {
+            park.coord = coords.get(park.seq);
+          }
+          render();
+        }
+        saveCustomParks();
+      }
+
+      csvStatus.textContent = `${added}개 공원 추가 완료.`;
+      csvStatus.className = "sync-status ok";
+
+      try {
+        await autoSaveGithub();
+      } catch (error) {
+        setSyncStatus(error.message, "error");
+      }
+    }
+
     function setManualPosition(latLng) {
       const lat = latLng.getLat();
       const lng = latLng.getLng();
@@ -1310,6 +1452,12 @@
       } else {
         clearManualForm();
       }
+    }
+
+    function setCsvPanelOpen(isOpen) {
+      csvUploadPanel.hidden = !isOpen;
+      toggleCsvUpload.setAttribute("aria-expanded", String(isOpen));
+      toggleCsvUpload.textContent = isOpen ? "업로드 닫기" : "CSV 업로드";
     }
 
     function setGithubPanelOpen(isOpen) {
@@ -1434,6 +1582,11 @@
       }
     });
     toggleOnline.addEventListener("click", () => setGithubPanelOpen(githubPanel.hidden));
+    toggleCsvUpload.addEventListener("click", () => setCsvPanelOpen(csvUploadPanel.hidden));
+    csvFileInput.addEventListener("change", (event) => {
+      const file = event.target.files[0];
+      if (file) handleCsvUpload(file);
+    });
     toggleManual.addEventListener("click", () => setManualPanelOpen(manualPanel.hidden));
     saveManual.addEventListener("click", saveManualPark);
     clearManual.addEventListener("click", clearManualForm);
