@@ -1,20 +1,5 @@
 [
   {
-    "seq": "manual-1781665199712",
-    "category": "소공원",
-    "name": "사월소공원",
-    "dong": "고산동",
-    "address": "",
-    "fullAddress": "",
-    "area": "",
-    "facility": "",
-    "source": "manual",
-    "coord": {
-      "lat": 35.8318002,
-      "lng": 128.7127397
-    }
-  },
-  {
     "seq": "manual-1781669089426",
     "category": "기타공원",
     "name": "수성유원지",
