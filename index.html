@@ -956,10 +956,17 @@
       return { key: "general", label: "일반" };
     }
 
+    function categoryOrder(cat) {
+      if (cat === "근린공원") return 0;
+      if (cat === "어린이공원") return 1;
+      if (cat === "소공원") return 2;
+      return 3;
+    }
+
     function sortedParks(data) {
       return data
         .slice()
-        .sort((a, b) => a.dong.localeCompare(b.dong, "ko") || String(a.seq).localeCompare(String(b.seq), "ko", { numeric: true }));
+        .sort((a, b) => a.dong.localeCompare(b.dong, "ko") || categoryOrder(a.category) - categoryOrder(b.category) || String(a.seq).localeCompare(String(b.seq), "ko", { numeric: true }));
     }
 
     function numberByDong(data) {
