@@ -943,6 +943,45 @@
         .replaceAll("'", "&#039;");
     }
 
+    // 주소에서 행정동(23개) 추출
+    function getAdminDong(park) {
+      const addr = park.address || "";
+      let m;
+      // 주소에 행정동 번호가 명시된 경우 (고산1 신매579, 범어2동 416-9 등)
+      if ((m = addr.match(/^고산([123])/))) return "고산" + m[1] + "동";
+      if ((m = addr.match(/범어([1-4])동/))) return "범어" + m[1] + "동";
+      if ((m = addr.match(/만촌([1-3])동/))) return "만촌" + m[1] + "동";
+      if ((m = addr.match(/지산([12])동/))) return "지산" + m[1] + "동";
+      if ((m = addr.match(/범물([12])동/))) return "범물" + m[1] + "동";
+      if ((m = addr.match(/황금([12])동/))) return "황금" + m[1] + "동";
+      if (/수성4가/.test(addr)) return "수성4가동";
+      if (/수성동[23]가/.test(addr)) return "수성2·3가동";
+      if (/수성동1가/.test(addr)) return "수성1가동";
+      // 법정동 → 행정동 매핑 (주소 기준)
+      const BEOPJEONG = {
+        "욱수동": "고산1동", "신매동": "고산1동",
+        "시지동": "고산2동", "노변동": "고산2동", "가천동": "고산2동",
+        "고모동": "고산2동", "대흥동": "고산2동", "삼덕동": "고산2동",
+        "연호동": "고산2동", "이천동": "고산2동",
+        "매호동": "고산3동", "사월동": "고산3동", "성동": "고산3동",
+      };
+      for (const [bp, hj] of Object.entries(BEOPJEONG)) {
+        if (addr.startsWith(bp)) return hj;
+      }
+      // 1:1 매핑 (법정동 = 행정동)
+      const DIRECT = { "상동": "상동", "두산동": "두산동", "중동": "중동", "파동": "파동" };
+      if (DIRECT[park.dong]) return DIRECT[park.dong];
+      // 법정동만 있는 경우 기본 행정동
+      if (park.dong === "욱수동" || park.dong === "고산동") return "고산1동";
+      if (park.dong === "범어동") return "범어1동";
+      if (park.dong === "만촌동") return "만촌1동";
+      if (park.dong === "지산동") return "지산1동";
+      if (park.dong === "범물동") return "범물1동";
+      if (park.dong === "황금동") return "황금1동";
+      if (park.dong === "수성동") return "수성1가동";
+      return park.dong;
+    }
+
     function classifyPark(park) {
       if (park.category === "어린이공원") {
         return { key: "child", label: "어린이" };
@@ -966,14 +1005,15 @@
     function sortedParks(data) {
       return data
         .slice()
-        .sort((a, b) => a.dong.localeCompare(b.dong, "ko") || categoryOrder(a.category) - categoryOrder(b.category) || String(a.seq).localeCompare(String(b.seq), "ko", { numeric: true }));
+        .sort((a, b) => a.adminDong.localeCompare(b.adminDong, "ko") || categoryOrder(a.category) - categoryOrder(b.category) || String(a.seq).localeCompare(String(b.seq), "ko", { numeric: true }));
     }
 
     function numberByDong(data) {
+      const enriched = data.map((park) => ({ ...park, adminDong: getAdminDong(park) }));
       const counts = new Map();
-      return sortedParks(data).map((park) => {
-        const number = (counts.get(park.dong) || 0) + 1;
-        counts.set(park.dong, number);
+      return sortedParks(enriched).map((park) => {
+        const number = (counts.get(park.adminDong) || 0) + 1;
+        counts.set(park.adminDong, number);
         return { ...park, number, type: classifyPark(park), coord: coords.get(park.seq) };
       });
     }
@@ -981,8 +1021,9 @@
     function filteredParks() {
       const query = state.query.trim().toLowerCase();
       return allParks().filter((park) => {
-        const inDong = state.dong === "전체" || park.dong === state.dong;
-        const inQuery = !query || `${park.name} ${park.dong} ${park.category} ${park.address}`.toLowerCase().includes(query);
+        const adminDong = getAdminDong(park);
+        const inDong = state.dong === "전체" || adminDong === state.dong;
+        const inQuery = !query || `${park.name} ${adminDong} ${park.category} ${park.address}`.toLowerCase().includes(query);
         const inFailed = !state.failedOnly || (failures.has(park.seq) && !coords.has(park.seq));
         return inDong && inQuery && inFailed;
       });
@@ -990,10 +1031,10 @@
 
     function renderFilters() {
       const parks = allParks();
-      const dongs = ["전체", ...Array.from(new Set(parks.map((park) => park.dong))).filter(Boolean).sort((a, b) => a.localeCompare(b, "ko"))];
+      const dongs = ["전체", ...Array.from(new Set(parks.map((park) => getAdminDong(park)))).filter(Boolean).sort((a, b) => a.localeCompare(b, "ko"))];
       filters.innerHTML = "";
       dongs.forEach((dong) => {
-        const count = dong === "전체" ? parks.length : parks.filter((park) => park.dong === dong).length;
+        const count = dong === "전체" ? parks.length : parks.filter((park) => getAdminDong(park) === dong).length;
         const button = document.createElement("button");
         button.className = `chip ${state.dong === dong ? "active" : ""}`;
         button.type = "button";
@@ -1014,7 +1055,7 @@
       content.className = "info";
       content.innerHTML = `
         <strong>${escapeHtml(park.name)}</strong>
-        <div>${escapeHtml(park.category)} · ${escapeHtml(park.dong)}</div>
+        <div>${escapeHtml(park.category)} · ${escapeHtml(park.adminDong || getAdminDong(park))}</div>
         <div class="info-actions">
           <button class="info-btn edit-btn" type="button">수정</button>
           <button class="info-btn relocate-btn" type="button">위치수정</button>
@@ -1171,7 +1212,7 @@
         const pin = document.createElement("div");
         pin.className = `pin ${park.type.key}`;
         pin.textContent = park.number;
-        pin.title = `${park.dong} ${park.number}번 ${park.name}`;
+        pin.title = `${park.adminDong} ${park.number}번 ${park.name}`;
         pin.addEventListener("click", () => showInfo(park, position));
         const overlay = new kakao.maps.CustomOverlay({
           map,
@@ -1222,7 +1263,7 @@
         }
         if (isFixing) row.classList.add("fixing");
         row.innerHTML = `
-          <td>${escapeHtml(park.dong)}</td>
+          <td>${escapeHtml(park.adminDong)}</td>
           <td><span class="num">${park.number}</span></td>
           <td><span class="tag ${park.type.key}">${park.type.label}</span></td>
           <td>${escapeHtml(park.name)}</td>
@@ -1249,7 +1290,7 @@
 
     function renderStats(data) {
       countParks.textContent = data.length;
-      countDongs.textContent = new Set(data.map((park) => park.dong)).size;
+      countDongs.textContent = new Set(data.map((park) => park.adminDong)).size;
       countMapped.textContent = data.filter((park) => park.coord).length;
       const failedCount = allParks().filter((park) => failures.has(park.seq) && !coords.has(park.seq)).length;
       countFailed.textContent = failedCount;
@@ -1274,7 +1315,7 @@
       const data = numberByDong(filteredParks());
       const header = ["동", "번호", "분류", "공원명", "주소", "원장연번", "자료구분", "위도", "경도", "좌표상태"];
       const rows = data.map((park) => [
-        park.dong,
+        park.adminDong,
         park.number,
         park.category,
         park.name,
