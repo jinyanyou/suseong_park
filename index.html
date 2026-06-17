@@ -821,7 +821,6 @@
     const manualCategory = document.querySelector("#manualCategory");
     const manualDong = document.querySelector("#manualDong");
     const manualAddress = document.querySelector("#manualAddress");
-    const manualFacility = document.querySelector("#manualFacility");
     const saveManual = document.querySelector("#saveManual");
     const clearManual = document.querySelector("#clearManual");
     const countParks = document.querySelector("#countParks");
@@ -1823,7 +1822,6 @@
       manualCategory.value = "어린이공원";
       manualDong.value = "";
       manualAddress.value = "";
-      manualFacility.value = "";
       if (tempOverlay) {
         tempOverlay.setMap(null);
         tempOverlay = null;
@@ -1864,7 +1862,7 @@
       const dong = manualDong.value.trim();
       const category = manualCategory.value;
       const address = manualAddress.value.trim();
-      const facility = manualFacility.value.trim();
+      const facility = "";
 
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
         alert("먼저 '지도 클릭으로 새 공원 추가'를 켜고 지도 위치를 클릭하세요.");
