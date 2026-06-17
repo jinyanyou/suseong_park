@@ -1498,24 +1498,26 @@
 
     async function putGithubFile(settings, path, content, message) {
       const fileSettings = { ...settings, path };
-      const remote = await fetchJsonFile(fileSettings);
-      const body = {
-        message,
-        content: encodeBase64Utf8(content),
-        branch: settings.branch
-      };
-      if (remote.sha) body.sha = remote.sha;
       const url = githubFileUrl(fileSettings).replace(`?ref=${encodeURIComponent(settings.branch)}`, "");
-      const response = await fetch(url, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${settings.token}`,
-          Accept: "application/vnd.github+json",
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(body)
-      });
-      if (!response.ok) {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const remote = await fetchJsonFile(fileSettings);
+        const body = {
+          message,
+          content: encodeBase64Utf8(content),
+          branch: settings.branch
+        };
+        if (remote.sha) body.sha = remote.sha;
+        const response = await fetch(url, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${settings.token}`,
+            Accept: "application/vnd.github+json",
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(body)
+        });
+        if (response.ok) return;
+        if (response.status === 409 && attempt < 2) continue;
         throw new Error(`GitHub 저장 실패: ${path} (${response.status})`);
       }
     }
