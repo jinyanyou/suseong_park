@@ -88,5 +88,20 @@
       "lat": 35.8180592,
       "lng": 128.6356763
     }
+  },
+  {
+    "seq": "manual-1781674651243",
+    "category": "근린공원",
+    "name": "범어가로공원",
+    "dong": "범어동",
+    "address": "범어동 189-23",
+    "fullAddress": "범어동 189-23",
+    "area": "",
+    "facility": "",
+    "source": "manual",
+    "coord": {
+      "lat": 35.85846,
+      "lng": 128.6288569
+    }
   }
 ]
