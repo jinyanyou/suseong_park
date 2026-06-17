@@ -30,6 +30,21 @@
     }
   },
   {
+    "seq": "manual-1781673743971",
+    "category": "기타공원",
+    "name": "대구어린이대공원",
+    "dong": "황금동",
+    "address": "황금동 626",
+    "fullAddress": "황금동 626",
+    "area": "",
+    "facility": "",
+    "source": "manual",
+    "coord": {
+      "lat": 35.846688,
+      "lng": 128.6270886
+    }
+  },
+  {
     "seq": "manual-1781673627652",
     "category": "기타공원",
     "name": "대구어린이대공원",
@@ -57,6 +72,21 @@
     "coord": {
       "lat": 35.8360596,
       "lng": 128.6303686
+    }
+  },
+  {
+    "seq": "manual-1781674114979",
+    "category": "기타공원",
+    "name": "수성생활체육공원",
+    "dong": "지산동",
+    "address": "지산동 산 136",
+    "fullAddress": "지산동 산 136",
+    "area": "",
+    "facility": "",
+    "source": "manual",
+    "coord": {
+      "lat": 35.8180592,
+      "lng": 128.6356763
     }
   }
 ]
