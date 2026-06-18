@@ -88,5 +88,20 @@
       "lat": 35.8711311,
       "lng": 128.6733469
     }
+  },
+  {
+    "seq": "manual-1781743690513",
+    "category": "어린이공원",
+    "name": "두건골공원",
+    "dong": "만촌동",
+    "address": "만촌동 715",
+    "fullAddress": "만촌동 715",
+    "area": "",
+    "facility": "",
+    "source": "manual",
+    "coord": {
+      "lat": 35.8583462,
+      "lng": 128.6517025
+    }
   }
 ]
