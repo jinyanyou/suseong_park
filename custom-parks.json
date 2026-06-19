@@ -103,5 +103,20 @@
       "lat": 35.8583462,
       "lng": 128.6517025
     }
+  },
+  {
+    "seq": "manual-1781834745378",
+    "category": "근린공원",
+    "name": "만촌공원",
+    "dong": "만촌동",
+    "address": "만촌동 산 83-14",
+    "fullAddress": "만촌동 산 83-14",
+    "area": "",
+    "facility": "",
+    "source": "manual",
+    "coord": {
+      "lat": 0,
+      "lng": 0
+    }
   }
 ]
