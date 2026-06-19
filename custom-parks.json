@@ -120,12 +120,27 @@
     }
   },
   {
-    "seq": "manual-1781835191483",
+    "seq": "manual-1781835141186",
     "category": "기타공원",
-    "name": "의료2공원",
+    "name": "의료1공원",
     "dong": "고산동",
-    "address": "대흥동 825",
-    "fullAddress": "대흥동 825",
+    "address": "대흥동 906",
+    "fullAddress": "대흥동 906",
+    "area": "",
+    "facility": "",
+    "source": "manual",
+    "coord": {
+      "lat": 0,
+      "lng": 0
+    }
+  },
+  {
+    "seq": "manual-1781835321300",
+    "category": "기타공원",
+    "name": "범어가로공원",
+    "dong": "범어동",
+    "address": "범어동 2291",
+    "fullAddress": "범어동 2291",
     "area": "",
     "facility": "",
     "source": "manual",
