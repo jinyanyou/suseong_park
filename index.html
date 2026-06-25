@@ -1202,6 +1202,7 @@
       }
     }
 
+    let renderMapTimer = 0;
     function renderMap(data) {
       if (!map) return;
       clearMap();
@@ -1210,7 +1211,10 @@
 
       data.forEach((park) => {
         if (!park.coord) return;
-        const position = new kakao.maps.LatLng(park.coord.lat, park.coord.lng);
+        const lat = park.coord.lat;
+        const lng = park.coord.lng;
+        if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < 33 || lat > 39 || lng < 124 || lng > 132) return;
+        const position = new kakao.maps.LatLng(lat, lng);
         const pin = document.createElement("div");
         pin.className = `pin ${park.type.key}`;
         pin.textContent = park.number;
@@ -1228,7 +1232,9 @@
       });
 
       if (hasPoint && mapUserAction) {
-        map.setBounds(bounds);
+        mapUserAction = false;
+        clearTimeout(renderMapTimer);
+        renderMapTimer = setTimeout(() => map.setBounds(bounds), 200);
       }
     }
 
