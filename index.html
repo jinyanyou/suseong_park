@@ -2044,41 +2044,43 @@
     init();
 
     kakao.maps.load(() => {
-      const center = new kakao.maps.LatLng(35.842, 128.655);
-      map = new kakao.maps.Map(document.querySelector("#map"), {
-        center,
-        level: 7
-      });
       geocoder = new kakao.maps.services.Geocoder();
       places = new kakao.maps.services.Places();
-      kakao.maps.event.addListener(map, "click", (mouseEvent) => {
-        if (Date.now() - infoClickGuard < 500) return;
-        if (infoOverlay) {
-          infoOverlay.setMap(null);
-          infoOverlay = null;
-        }
-        if (fixingPark) {
-          const lat = mouseEvent.latLng.getLat();
-          const lng = mouseEvent.latLng.getLng();
-          saveCoord(fixingPark, lat, lng, { manual: true });
-          failures.delete(fixingPark.seq);
-          const donePark = fixingPark;
-          fixingPark = null;
-          render();
-          autoSaveGithub().catch((error) => setSyncStatus(error.message, "error"));
-          return;
-        }
-        if (!manualMode.checked) return;
-        setManualPosition(mouseEvent.latLng);
-      });
-      render();
-      mapReady = true;
-      tryGeocodeAll();
-      requestAnimationFrame(() => {
-        map.relayout();
-        map.setCenter(center);
-        map.setLevel(7);
-      });
+
+      function initMap() {
+        const container = document.querySelector("#map");
+        const center = new kakao.maps.LatLng(35.842, 128.655);
+        map = new kakao.maps.Map(container, { center, level: 7 });
+        kakao.maps.event.addListener(map, "click", (mouseEvent) => {
+          if (Date.now() - infoClickGuard < 500) return;
+          if (infoOverlay) {
+            infoOverlay.setMap(null);
+            infoOverlay = null;
+          }
+          if (fixingPark) {
+            const lat = mouseEvent.latLng.getLat();
+            const lng = mouseEvent.latLng.getLng();
+            saveCoord(fixingPark, lat, lng, { manual: true });
+            failures.delete(fixingPark.seq);
+            const donePark = fixingPark;
+            fixingPark = null;
+            render();
+            autoSaveGithub().catch((error) => setSyncStatus(error.message, "error"));
+            return;
+          }
+          if (!manualMode.checked) return;
+          setManualPosition(mouseEvent.latLng);
+        });
+        render();
+        mapReady = true;
+        tryGeocodeAll();
+      }
+
+      if (document.readyState === "complete") {
+        initMap();
+      } else {
+        window.addEventListener("load", initMap);
+      }
     });
   </script>
 </body>
