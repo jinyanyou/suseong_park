@@ -2049,6 +2049,8 @@
 
       function initMap() {
         const container = document.querySelector("#map");
+        container.style.width = container.offsetWidth + "px";
+        container.style.height = container.offsetHeight + "px";
         const center = new kakao.maps.LatLng(35.842, 128.655);
         map = new kakao.maps.Map(container, { center, level: 7 });
         kakao.maps.event.addListener(map, "click", (mouseEvent) => {
@@ -2071,13 +2073,27 @@
           if (!manualMode.checked) return;
           setManualPosition(mouseEvent.latLng);
         });
-        render();
-        mapReady = true;
-        tryGeocodeAll();
+        kakao.maps.event.addListener(map, "tilesloaded", function onFirstTiles() {
+          kakao.maps.event.removeListener(map, "tilesloaded", onFirstTiles);
+          render();
+          mapReady = true;
+          tryGeocodeAll();
+        });
+        // 타일 로드가 안 될 경우 대비
+        setTimeout(() => {
+          if (!mapReady) {
+            map.relayout();
+            map.setCenter(center);
+            map.setLevel(7);
+            render();
+            mapReady = true;
+            tryGeocodeAll();
+          }
+        }, 1000);
       }
 
       if (document.readyState === "complete") {
-        initMap();
+        setTimeout(initMap, 0);
       } else {
         window.addEventListener("load", initMap);
       }
