@@ -1202,12 +1202,11 @@
       }
     }
 
-    let renderMapTimer = 0;
     function renderMap(data) {
       if (!map) return;
       clearMap();
-      const bounds = new kakao.maps.LatLngBounds();
-      let hasPoint = false;
+      let sumLat = 0, sumLng = 0, count = 0;
+      let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
 
       data.forEach((park) => {
         if (!park.coord) return;
@@ -1227,14 +1226,24 @@
           yAnchor: 0.5
         });
         overlays.push(overlay);
-        bounds.extend(position);
-        hasPoint = true;
+        sumLat += lat; sumLng += lng; count++;
+        if (lat < minLat) minLat = lat;
+        if (lat > maxLat) maxLat = lat;
+        if (lng < minLng) minLng = lng;
+        if (lng > maxLng) maxLng = lng;
       });
 
-      if (hasPoint && mapUserAction) {
+      if (count > 0 && mapUserAction) {
         mapUserAction = false;
-        clearTimeout(renderMapTimer);
-        renderMapTimer = setTimeout(() => map.setBounds(bounds), 200);
+        const center = new kakao.maps.LatLng(sumLat / count, sumLng / count);
+        const spread = Math.max(maxLat - minLat, maxLng - minLng);
+        let level = 3;
+        if (spread > 0.08) level = 7;
+        else if (spread > 0.04) level = 6;
+        else if (spread > 0.02) level = 5;
+        else if (spread > 0.005) level = 4;
+        map.setCenter(center);
+        map.setLevel(level);
       }
     }
 
