@@ -2049,7 +2049,6 @@
         center,
         level: 7
       });
-      setTimeout(() => map.relayout(), 0);
       geocoder = new kakao.maps.services.Geocoder();
       places = new kakao.maps.services.Places();
       kakao.maps.event.addListener(map, "click", (mouseEvent) => {
@@ -2075,6 +2074,11 @@
       render();
       mapReady = true;
       tryGeocodeAll();
+      requestAnimationFrame(() => {
+        map.relayout();
+        map.setCenter(center);
+        map.setLevel(7);
+      });
     });
   </script>
 </body>
