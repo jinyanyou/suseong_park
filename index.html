@@ -798,7 +798,7 @@
     let tempOverlay;
     let fixingPark = null;
     let infoClickGuard = 0;
-    let mapTilesLoaded = false;
+    let mapUserAction = false;
     const coordFixes = {};
 
     const list = document.querySelector("#list");
@@ -1042,6 +1042,7 @@
         button.textContent = `${dong} ${count}`;
         button.addEventListener("click", () => {
           state.dong = dong;
+          mapUserAction = true;
           render();
         });
         filters.appendChild(button);
@@ -1226,7 +1227,7 @@
         hasPoint = true;
       });
 
-      if (hasPoint && mapTilesLoaded) {
+      if (hasPoint && mapUserAction) {
         map.setBounds(bounds);
       }
     }
@@ -1987,6 +1988,7 @@
 
     search.addEventListener("input", (event) => {
       state.query = event.target.value;
+      mapUserAction = true;
       render();
     });
 
@@ -2074,11 +2076,7 @@
           if (!manualMode.checked) return;
           setManualPosition(mouseEvent.latLng);
         });
-        kakao.maps.event.addListener(map, "tilesloaded", function onFirstTiles() {
-          kakao.maps.event.removeListener(map, "tilesloaded", onFirstTiles);
-          mapTilesLoaded = true;
-          render();
-        });
+        render();
         mapReady = true;
         tryGeocodeAll();
       }
